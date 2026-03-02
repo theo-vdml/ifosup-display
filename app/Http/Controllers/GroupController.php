@@ -5,17 +5,19 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Models\Group;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Inertia\Inertia;
 
 class GroupController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index()
     {
         $groups = Group::all();
-        return response()->json($groups);
+        return Inertia::render('resources/groups/Index', [
+            'groups' => $groups,
+        ]);
     }
 
     /**
@@ -23,27 +25,29 @@ class GroupController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('resources/groups/Create');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreGroupRequest $request): JsonResponse
+    public function store(StoreGroupRequest $request)
     {
         $validated = $request->validated();
 
         $group = Group::create($validated);
 
-        return response()->json($group, 201);
+        return redirect()->route('groups.show', $group);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Group $group): JsonResponse
+    public function show(Group $group)
     {
-        return response()->json($group);
+        return Inertia::render('resources/groups/Show', [
+            'group' => $group,
+        ]);
     }
 
     /**
@@ -51,27 +55,29 @@ class GroupController extends Controller
      */
     public function edit(Group $group)
     {
-        //
+        return Inertia::render('resources/groups/Edit', [
+            'group' => $group,
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateGroupRequest $request, Group $group): JsonResponse
+    public function update(UpdateGroupRequest $request, Group $group)
     {
         $validated = $request->validated();
 
         $group->update($validated);
 
-        return response()->json($group);
+        return redirect()->route('groups.show', $group);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Group $group): JsonResponse
+    public function destroy(Group $group)
     {
         $group->delete();
-        return response()->json(null, 204);
+        return redirect()->route('groups.index');
     }
 }

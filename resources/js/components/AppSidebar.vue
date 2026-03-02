@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { Link } from '@inertiajs/vue3';
-    import { BookOpen, FolderGit2, LayoutGrid, GraduationCap, DoorOpen } from 'lucide-vue-next';
+    import { BookOpen, FolderGit2, LayoutGrid, GraduationCap, DoorOpen, UsersRound } from 'lucide-vue-next';
     import AppLogo from '@/components/AppLogo.vue';
     import NavFooter from '@/components/NavFooter.vue';
     import NavMain from '@/components/NavMain.vue';
@@ -18,6 +18,7 @@
     import type { NavItem } from '@/types';
     import teachers from '@/routes/teachers';
     import rooms from '@/routes/rooms';
+    import groups from '@/routes/groups';
 
     const mainNavItems: NavItem[] = [
         {
@@ -34,6 +35,11 @@
             title: 'Locaux',
             href: rooms.index(),
             icon: DoorOpen,
+        },
+        {
+            title: 'Groupes',
+            href: groups.index(),
+            icon: UsersRound,
         }
     ];
 
