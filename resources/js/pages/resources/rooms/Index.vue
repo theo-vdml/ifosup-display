@@ -1,65 +1,30 @@
 <script setup lang="ts">
-    import AppLayout from '@/layouts/AppLayout.vue';
-    import { show, index, create } from '@/actions/App/Http/Controllers/RoomController'
-    import Heading from '@/components/Heading.vue';
-    import { Link } from '@inertiajs/vue3';
-    import { BreadcrumbItem } from '@/types';
+    import actions from '@/actions/App/Http/Controllers/RoomController'
+    import { useResourceRoutes } from '@/composables/useResourceRoutes';
+    import ResourceIndexLayout from '@/layouts/resources/ResourceIndexLayout.vue';
+    import ResourceListItem from '@/components/resources/ResourceListItem.vue';
 
     const props = defineProps<{
         rooms: Room[];
     }>();
 
-    const breadcrumbItems: BreadcrumbItem[] = [
-        {
-            title: 'Ressources',
-            href: '#',
-        },
-        {
-            title: 'Locaux',
-            href: index(),
-        }
-    ];
+    const routes = useResourceRoutes(null, actions)
+
+    const getAvatarUrl = (name: string) => {
+        return `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(name)}`;
+    };
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
-        <div class="px-4 py-6 w-full max-w-5xl mx-auto">
-            <div class="flex flex-col space-y-6">
-                <div class="flex items-start justify-between">
-                    <Heading title="Locaux" description="Gérez la liste des locaux." />
-                    <Link :href="create()"
-                        class="px-4 py-2 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800 transition">
-                        Nouveau local
-                    </Link>
-                </div>
+    <ResourceIndexLayout type="Locaux" :routes="routes" :isEmpty="rooms.length === 0">
+        <template #empty-title>Il n'y a aucun local.</template>
+        <template #empty-action>Créer un local</template>
+        <template #create-action>Créer un local</template>
 
-                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <ul class="divide-y divide-gray-100">
-                        <li v-for="room in rooms" :key="room.id" class="group">
-                            <Link :href="show(room.id).url"
-                                class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
-                                <div class="flex items-center space-x-4">
-                                    <div
-                                        class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-600 border border-gray-200">
-                                        {{ room.name.charAt(0) }}
-                                    </div>
-                                    <span class="text-sm font-medium text-gray-900">{{ room.name }}</span>
-                                </div>
-
-                                <svg class="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5l7 7-7 7" />
-                                </svg>
-                            </Link>
-                        </li>
-
-                        <li v-if="rooms.length === 0" class="px-6 py-10 text-center text-sm text-gray-500">
-                            Aucun local trouvé.
-                        </li>
-                    </ul>
-                </div>
-            </div>
+        <div class="grid gap-3">
+            <ResourceListItem v-for="room in rooms" :key="room.id" :href="actions.show(room.id).url" :title="room.name"
+                :image="getAvatarUrl(room.name)">
+            </ResourceListItem>
         </div>
-    </AppLayout>
+    </ResourceIndexLayout>
 </template>

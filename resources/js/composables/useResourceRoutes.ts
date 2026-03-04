@@ -17,14 +17,16 @@ export interface ResourceRoutes {
 }
 
 export function useResourceRoutes(
-    resourceId: number | string,
+    resourceId: number | string | null,
     actions: ResourceControllerActions,
 ): ResourceRoutes {
     return {
         index: actions.index().url,
-        show: actions.show(resourceId).url,
-        edit: actions.edit(resourceId).url,
+        show: resourceId ? actions.show(resourceId).url : actions.index().url,
+        edit: resourceId ? actions.edit(resourceId).url : actions.index().url,
         create: actions.create().url,
-        destroy: actions.destroy(resourceId).url,
+        destroy: resourceId
+            ? actions.destroy(resourceId).url
+            : actions.index().url,
     };
 }
