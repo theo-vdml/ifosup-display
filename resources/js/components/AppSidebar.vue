@@ -19,6 +19,7 @@
     import teachers from '@/routes/teachers';
     import rooms from '@/routes/rooms';
     import groups from '@/routes/groups';
+    import courses from '@/routes/courses';
 
     const mainNavItems: NavItem[] = [
         {
@@ -40,6 +41,11 @@
             title: 'Groupes',
             href: groups.index(),
             icon: UsersRound,
+        },
+        {
+            title: 'Cours',
+            href: courses.index(),
+            icon: BookOpen
         }
     ];
 

@@ -5,17 +5,19 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Inertia\Inertia;
 
 class CourseController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index()
     {
         $courses = Course::all();
-        return response()->json($courses);
+        return Inertia::render('resources/courses/Index', [
+            'courses' => $courses,
+        ]);
     }
 
     /**
@@ -23,27 +25,29 @@ class CourseController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('resources/courses/Create');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreCourseRequest $request): JsonResponse
+    public function store(StoreCourseRequest $request)
     {
         $validated = $request->validated();
 
         $course = Course::create($validated);
 
-        return response()->json($course, 201);
+        return redirect()->route('courses.show', $course);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Course $course): JsonResponse
+    public function show(Course $course)
     {
-        return response()->json($course);
+        return Inertia::render('resources/courses/Show', [
+            'course' => $course,
+        ]);
     }
 
     /**
@@ -51,7 +55,9 @@ class CourseController extends Controller
      */
     public function edit(Course $course)
     {
-        //
+        return Inertia::render('resources/courses/Edit', [
+            'course' => $course,
+        ]);
     }
 
     /**
@@ -63,7 +69,7 @@ class CourseController extends Controller
 
         $course->update($validated);
 
-        return response()->json($course);
+        return redirect()->route('courses.show', $course);
     }
 
     /**
@@ -73,6 +79,6 @@ class CourseController extends Controller
     {
         $course->delete();
 
-        return response()->json(null, 204);
+        return redirect()->route('courses.index');
     }
 }

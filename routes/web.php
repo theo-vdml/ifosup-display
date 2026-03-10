@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CourseController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\TeacherController;
@@ -15,6 +16,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('teachers', TeacherController::class);
     Route::resource('rooms', RoomController::class);
     Route::resource('groups', GroupController::class);
+    Route::resource('courses', CourseController::class);
 });
 
 
