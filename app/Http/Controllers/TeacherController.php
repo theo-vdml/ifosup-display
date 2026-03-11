@@ -47,6 +47,8 @@ class TeacherController extends Controller
      */
     public function show(Teacher $teacher): Response
     {
+        $teacher->load(['courses:id,name,code,teacher_id']);
+
         return Inertia::render('resources/teachers/Show', [
             'teacher' => $teacher,
         ]);
