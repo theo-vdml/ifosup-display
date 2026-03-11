@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
+use App\Models\Group;
+use App\Models\Teacher;
 use Inertia\Inertia;
 
 class CourseController extends Controller
@@ -25,7 +27,13 @@ class CourseController extends Controller
      */
     public function create()
     {
-        return Inertia::render('resources/courses/Create');
+        $teachers = Teacher::all();
+        $groups = Group::all();
+
+        return Inertia::render('resources/courses/Create', [
+            'teachers' => $teachers,
+            'groups' => $groups
+        ]);
     }
 
     /**
@@ -36,6 +44,10 @@ class CourseController extends Controller
         $validated = $request->validated();
 
         $course = Course::create($validated);
+
+        if ($request->has('groups')) {
+            $course->groups()->sync($validated['groups']);
+        }
 
         return redirect()->route('courses.show', $course);
     }
@@ -55,8 +67,15 @@ class CourseController extends Controller
      */
     public function edit(Course $course)
     {
+        $course->load('groups', 'teacher');
+
+        $teachers = Teacher::all();
+        $groups = Group::all();
+
         return Inertia::render('resources/courses/Edit', [
             'course' => $course,
+            'teachers' => $teachers,
+            'groups' => $groups
         ]);
     }
 
@@ -68,6 +87,12 @@ class CourseController extends Controller
         $validated = $request->validated();
 
         $course->update($validated);
+
+        if ($request->has('groups')) {
+            $course->groups()->sync($validated['groups']);
+        } else {
+            $course->groups()->sync([]);
+        }
 
         return redirect()->route('courses.show', $course);
     }

@@ -9,6 +9,11 @@
 
     const routes = useResourceRoutes(null, actions);
 
+    const props = defineProps<{
+        teachers: Teacher[];
+        groups: Group[];
+    }>();
+
 </script>
 
 <template>
@@ -28,6 +33,18 @@
                 <Input id="name" class="mt-1 block w-full" name="name" required autocomplete="name"
                     placeholder="Nom du cours" />
                 <InputError class="mt-2" :message="errors.name" />
+            </div>
+            <div class="grid gap-2">
+                <Label for="teacher">Enseignant</Label>
+                <Combobox :options="props.teachers" placeholder="Séléctionner un enseignant" name="teacher_id"
+                    valueKey="id" :displayFunction="(opt) => opt.name" />
+                <InputError class="mt-2" :message="errors.teacher" />
+            </div>
+            <div class="grid gap-2">
+                <Label for="group">Groupes</Label>
+                <Combobox :options="props.groups" multiple placeholder="Séléctionner le(s) groupe(s)" name="groups"
+                    valueKey="id" :displayFunction="(opt) => opt.name" />
+                <InputError class="mt-2" :message="errors.group" />
             </div>
         </template>
     </ResourceFormLayout>
