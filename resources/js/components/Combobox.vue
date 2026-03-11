@@ -103,7 +103,7 @@
 
 <template>
     <Combobox v-model="proxyValue" @update:model-value="val => emit('update:modelValue', val)" as="div" class="w-full"
-        :multiple="multiple" :nullable="nullable">
+        :multiple="multiple" :nullable="nullable" :by="valueKey ? String(valueKey) : undefined">
         <template v-if="name">
             <template v-if="multiple && Array.isArray(proxyValue)">
                 <input v-for="(option, index) in proxyValue" type="hidden" :name="`${name}[]`"
