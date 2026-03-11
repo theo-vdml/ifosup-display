@@ -4,7 +4,7 @@
     import ResourceListItem from '@/components/resources/ResourceListItem.vue';
     import ResourceShowLayout from '@/layouts/resources/ResourceShowLayout.vue';
     import { useResourceRoutes } from '@/composables/useResourceRoutes';
-    import { Layers3Icon } from 'lucide-vue-next';
+    import { BookOpenIcon, HashIcon, Layers3Icon } from 'lucide-vue-next';
 
     const props = defineProps<{
         teacher: Teacher;
@@ -35,10 +35,14 @@
                     <div class="flex flex-col gap-3">
                         <h2 class="text-2xl font-semibold tracking-tight">{{ teacher.name }}</h2>
                         <div class="flex flex-wrap gap-2 text-xs">
-                            <span class="rounded-full border border-sidebar-border/70 px-2.5 py-1">
-                                ID #{{ teacher.id }}
+                            <span
+                                class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-1">
+                                <HashIcon class="h-3 w-3 mt-px" />
+                                {{ teacher.id }}
                             </span>
-                            <span class="rounded-full border border-sidebar-border/70 px-2.5 py-1">
+                            <span
+                                class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
+                                <BookOpenIcon class="h-3 w-3 mt-px" />
                                 {{ courses.length }} cours
                             </span>
                         </div>

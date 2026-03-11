@@ -45,6 +45,8 @@ class GroupController extends Controller
      */
     public function show(Group $group)
     {
+        $group->load(['courses:id,name,code']);
+
         return Inertia::render('resources/groups/Show', [
             'group' => $group,
         ]);

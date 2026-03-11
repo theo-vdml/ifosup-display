@@ -1,5 +1,6 @@
 interface Group {
     id: number;
     name: string;
-    size: number
+    size: number;
+    courses?: Course[];
 }
