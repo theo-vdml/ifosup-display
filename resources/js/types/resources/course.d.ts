@@ -3,6 +3,6 @@ interface Course {
     name: string;
     code: string;
     teacher_id: number;
-    teacher: Teacher;
-    groups: Group[];
+    teacher?: Teacher;
+    groups?: Group[];
 }
