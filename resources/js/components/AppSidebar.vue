@@ -14,7 +14,7 @@
         SidebarMenuButton,
         SidebarMenuItem,
     } from '@/components/ui/sidebar';
-    import { dashboard, scheduler } from '@/routes';
+    import { dashboard, schedule } from '@/routes';
     import type { NavItem } from '@/types';
     import teachers from '@/routes/teachers';
     import rooms from '@/routes/rooms';
@@ -49,7 +49,7 @@
         },
         {
             title: 'Planning',
-            href: scheduler(),
+            href: schedule(),
             icon: CalendarRange
         }
     ];

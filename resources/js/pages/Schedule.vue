@@ -1,13 +1,13 @@
 <script setup lang="ts">
     import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
     import AppLayout from '@/layouts/AppLayout.vue';
-    import { scheduler } from '@/routes';
+    import { schedule } from '@/routes';
     import { BreadcrumbItem } from '@/types';
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Planning',
-            href: scheduler(),
+            href: schedule(),
         },
     ];
 

@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 
-class SchedulerController extends Controller
+class ScheduleController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Scheduler');
+        return Inertia::render('Schedule');
     }
 }
