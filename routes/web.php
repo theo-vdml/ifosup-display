@@ -3,6 +3,7 @@
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SchedulerController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -17,6 +18,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('rooms', RoomController::class);
     Route::resource('groups', GroupController::class);
     Route::resource('courses', CourseController::class);
+
+    Route::get('scheduler', [SchedulerController::class, 'index'])->name('scheduler');
 });
 
 
