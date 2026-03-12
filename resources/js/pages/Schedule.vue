@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
+    import Scheduler from '@/components/Scheduler.vue';
     import AppLayout from '@/layouts/AppLayout.vue';
     import { schedule } from '@/routes';
     import { BreadcrumbItem } from '@/types';
@@ -15,11 +15,8 @@
 
 <template>
     <AppLayout :breadcrumbs>
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-            <div
-                class="relative min-h-screen flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                <PlaceholderPattern />
-            </div>
+        <div class="h-full p-4">
+            <Scheduler />
         </div>
     </AppLayout>
 </template>
