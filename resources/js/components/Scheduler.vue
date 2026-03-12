@@ -153,7 +153,7 @@
 
     const dateKeys = buildDateKeys(fromDate, toDate);
     const rooms = generateRooms(ROOM_COUNT);
-    const occupations = generateOccupations(rooms, dateKeys, periods);
+    const occupations = ref(generateOccupations(rooms, dateKeys, periods));
 
     const dateLabelFormatter = new Intl.DateTimeFormat('fr-FR', {
         weekday: 'short',
@@ -173,11 +173,15 @@
         });
     });
 
+    const buildCellKey = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return `${roomId}|${dateKey}|${period}`;
+    };
+
     const occupationMap = computed(() => {
         const map = new Map<string, string>();
 
-        for (const occupation of occupations) {
-            const key = `${occupation.roomId}|${occupation.date}|${occupation.period}`;
+        for (const occupation of occupations.value) {
+            const key = buildCellKey(occupation.roomId, occupation.date, occupation.period);
             map.set(key, occupation.groupName);
         }
 
@@ -185,7 +189,7 @@
     });
 
     const getUsage = (roomId: number, dateKey: string, period: PeriodKey) => {
-        const key = `${roomId}|${dateKey}|${period}`;
+        const key = buildCellKey(roomId, dateKey, period);
         return occupationMap.value.get(key);
     };
 
@@ -277,8 +281,8 @@
     const cellDetailsMap = computed(() => {
         const map = new Map<string, CellDetails>();
 
-        for (const occupation of occupations) {
-            const key = `${occupation.roomId}|${occupation.date}|${occupation.period}`;
+        for (const occupation of occupations.value) {
+            const key = buildCellKey(occupation.roomId, occupation.date, occupation.period);
             const [groupLabel, ...courseParts] = occupation.groupName.split(' - ');
 
             map.set(key, {
@@ -292,8 +296,194 @@
     });
 
     const getCellDetails = (roomId: number, dateKey: string, period: PeriodKey) => {
-        const key = `${roomId}|${dateKey}|${period}`;
+        const key = buildCellKey(roomId, dateKey, period);
         return cellDetailsMap.value.get(key);
+    };
+
+    const draggedOccupationKey = ref<string | null>(null);
+    const dropTargetKey = ref<string | null>(null);
+
+    const findOccupationIndex = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return occupations.value.findIndex((occupation) => {
+            return occupation.roomId === roomId
+                && occupation.date === dateKey
+                && occupation.period === period;
+        });
+    };
+
+    const updateOccupationSlot = (
+        occupation: Occupation,
+        roomId: number,
+        dateKey: string,
+        period: PeriodKey,
+    ) => {
+        occupation.roomId = roomId;
+        occupation.date = dateKey;
+        occupation.period = period;
+    };
+
+    const clearDragState = () => {
+        draggedOccupationKey.value = null;
+        dropTargetKey.value = null;
+    };
+
+    const buildDragPreview = (details: CellDetails) => {
+        const preview = document.createElement('div');
+        preview.style.position = 'fixed';
+        preview.style.top = '-9999px';
+        preview.style.left = '-9999px';
+        preview.style.width = `${Math.min(currentZoom.value.cellWidth - 8, 280)}px`;
+        preview.style.padding = zoom.value === 'small' ? '6px 8px' : '10px 12px';
+        preview.style.borderRadius = '16px';
+        preview.style.border = `1px solid ${details.theme.cardBorder}`;
+        preview.style.background = details.theme.cardBg;
+        preview.style.boxShadow = '0 18px 40px rgba(0, 0, 0, 0.18)';
+        preview.style.backdropFilter = 'blur(10px)';
+        preview.style.setProperty('-webkit-backdrop-filter', 'blur(10px)');
+        preview.style.pointerEvents = 'none';
+        preview.style.transform = 'rotate(-2deg)';
+        preview.style.opacity = '0.96';
+        preview.style.zIndex = '9999';
+
+        const badge = document.createElement('div');
+        badge.textContent = details.groupLabel;
+        badge.style.display = 'inline-block';
+        badge.style.maxWidth = '100%';
+        badge.style.marginBottom = '8px';
+        badge.style.padding = zoom.value === 'small' ? '1px 6px' : '2px 8px';
+        badge.style.borderRadius = '999px';
+        badge.style.overflow = 'hidden';
+        badge.style.whiteSpace = 'nowrap';
+        badge.style.textOverflow = 'ellipsis';
+        badge.style.background = details.theme.badgeBg;
+        badge.style.color = details.theme.badgeText;
+        badge.style.fontSize = zoom.value === 'small' ? '8px' : '10px';
+        badge.style.fontWeight = '700';
+        badge.style.letterSpacing = '0.08em';
+        badge.style.textTransform = 'uppercase';
+
+        const title = document.createElement('div');
+        title.textContent = details.courseLabel;
+        title.style.color = details.theme.cardText;
+        title.style.fontSize = zoom.value === 'small' ? '10px' : '13px';
+        title.style.fontWeight = '700';
+        title.style.lineHeight = '1.2';
+
+        preview.appendChild(badge);
+        preview.appendChild(title);
+        document.body.appendChild(preview);
+
+        return preview;
+    };
+
+    const onOccupationDragStart = (
+        roomId: number,
+        dateKey: string,
+        period: PeriodKey,
+        event: DragEvent,
+    ) => {
+        const key = buildCellKey(roomId, dateKey, period);
+        const details = getCellDetails(roomId, dateKey, period);
+
+        if (!details) {
+            return;
+        }
+
+        draggedOccupationKey.value = key;
+        dropTargetKey.value = key;
+
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', key);
+
+            const preview = buildDragPreview(details);
+            event.dataTransfer.setDragImage(preview, 24, 20);
+            requestAnimationFrame(() => preview.remove());
+        }
+    };
+
+    const onCellDragOver = (
+        roomId: number,
+        dateKey: string,
+        period: PeriodKey,
+        event: DragEvent,
+    ) => {
+        if (!draggedOccupationKey.value) {
+            return;
+        }
+
+        const sourceKey = draggedOccupationKey.value;
+        const targetKey = buildCellKey(roomId, dateKey, period);
+        const isSameCell = sourceKey === targetKey;
+        const targetUsed = findOccupationIndex(roomId, dateKey, period) !== -1;
+        const canDrop = isSameCell || !targetUsed;
+
+        if (!canDrop) {
+            dropTargetKey.value = null;
+
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'none';
+            }
+
+            return;
+        }
+
+        event.preventDefault();
+        dropTargetKey.value = buildCellKey(roomId, dateKey, period);
+
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+    };
+
+    const onCellDrop = (
+        roomId: number,
+        dateKey: string,
+        period: PeriodKey,
+        event: DragEvent,
+    ) => {
+        event.preventDefault();
+
+        const sourceKey = draggedOccupationKey.value;
+        const targetKey = buildCellKey(roomId, dateKey, period);
+        const isSameCell = sourceKey === targetKey;
+        const targetUsed = findOccupationIndex(roomId, dateKey, period) !== -1;
+
+        if (!sourceKey || isSameCell) {
+            clearDragState();
+            return;
+        }
+
+        if (targetUsed) {
+            clearDragState();
+            return;
+        }
+
+        const [sourceRoomId, sourceDate, sourcePeriod] = sourceKey.split('|');
+        const sourceIndex = findOccupationIndex(
+            Number.parseInt(sourceRoomId, 10),
+            sourceDate,
+            sourcePeriod as PeriodKey,
+        );
+
+        if (sourceIndex === -1) {
+            clearDragState();
+            return;
+        }
+
+        const sourceOccupation = occupations.value[sourceIndex];
+        updateOccupationSlot(sourceOccupation, roomId, dateKey, period);
+
+        occupations.value = [...occupations.value];
+        clearDragState();
+    };
+
+    const isDropTarget = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return dropTargetKey.value === buildCellKey(roomId, dateKey, period);
+    };
+
+    const isDraggedOccupation = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return draggedOccupationKey.value === buildCellKey(roomId, dateKey, period);
     };
 
     const headerTrackRef = ref<HTMLElement | null>(null);
@@ -455,14 +645,25 @@
                         <div v-for="room in rooms" :key="`row-${room.id}`" class="flex">
                             <template v-for="date in dates" :key="`${room.id}-${date.key}`">
                                 <div v-for="period in periods" :key="`${room.id}-${date.key}-${period.key}`"
-                                    class="group relative border-r border-b border-zinc-100 bg-white px-0 py-0 dark:border-zinc-800 dark:bg-zinc-950"
-                                    :style="{ width: cellWidth, height: cellHeight }">
+                                    class="group relative border-r border-b border-zinc-100 bg-white px-0 py-0 transition-colors dark:border-zinc-800 dark:bg-zinc-950"
+                                    :class="isDropTarget(room.id, date.key, period.key)
+                                        ? 'bg-zinc-100/80 dark:bg-zinc-900/80'
+                                        : ''" :style="{ width: cellWidth, height: cellHeight }"
+                                    @dragover="onCellDragOver(room.id, date.key, period.key, $event)"
+                                    @drop="onCellDrop(room.id, date.key, period.key, $event)">
                                     <div v-if="getCellDetails(room.id, date.key, period.key)"
                                         class="m-1 flex h-[calc(100%-0.5rem)] flex-col justify-between rounded-xl border shadow-[0_10px_20px_rgba(0,0,0,0.08)]"
-                                        :class="zoom === 'small' ? 'px-2 py-1.5' : 'px-3 py-2'" :style="{
+                                        :class="[
+                                            zoom === 'small' ? 'px-2 py-1.5' : 'px-3 py-2',
+                                            isDraggedOccupation(room.id, date.key, period.key)
+                                                ? 'cursor-grabbing opacity-55'
+                                                : 'cursor-grab',
+                                        ]" :style="{
                                             backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.cardBg,
                                             borderColor: getCellDetails(room.id, date.key, period.key)?.theme.cardBorder,
-                                        }">
+                                        }" draggable="true"
+                                        @dragstart="onOccupationDragStart(room.id, date.key, period.key, $event)"
+                                        @dragend="clearDragState()">
                                         <div class="flex items-center justify-between gap-1">
                                             <span class="rounded-full font-bold uppercase tracking-wide truncate"
                                                 :class="zoom === 'small' ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'"
@@ -492,7 +693,7 @@
                                     </div>
 
                                     <div v-else class="flex h-full items-center justify-center relative">
-                                        <PlaceholderPattern />
+                                        <PlaceholderPattern v-if="!isDropTarget(room.id, date.key, period.key)" />
                                         <Plus
                                             class="h-5 w-5 text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 dark:text-zinc-600" />
                                     </div>
