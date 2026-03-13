@@ -109,7 +109,40 @@ export function useThemeDerivation(isDark: MaybeRef<boolean> = false) {
         };
     };
 
+    const getHexFromSeed = (seed: string) => {
+        const colors = [
+            '#2563eb',
+            '#0891b2',
+            '#10b981',
+            '#65a30d',
+            '#ca8a04',
+            '#ea580c',
+            '#db2777',
+            '#9333ea',
+            '#7c3aed',
+            '#1d4ed8',
+            '#0d9488',
+            '#57534e',
+            '#ef4444',
+            '#f59e0b',
+            '#6366f1',
+        ];
+
+        // On calcule un hash simple
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+            hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        // On sélectionne l'index de manière déterministe
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
+    };
+
     return {
         deriveThemeFromBase,
+        getHexFromSeed,
+        getThemeFromSeed: (seed: string) =>
+            deriveThemeFromBase(getHexFromSeed(seed)),
     };
 }

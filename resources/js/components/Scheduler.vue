@@ -5,29 +5,113 @@
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
 
+    interface SchedulerProps {
+
+        fromDate?: string
+        toDate?: string
+        rooms?: Room[]
+        assignments?: Assignment[]
+
+    };
+
+    const props = withDefaults(defineProps<SchedulerProps>(), {
+        fromDate: '2026-03-10',
+        toDate: '2026-03-30',
+        rooms: () => [
+            { id: 1, name: 'Salle A' },
+            { id: 2, name: 'Salle B' },
+            { id: 3, name: 'Salle C' },
+            { id: 4, name: 'Salle D' },
+            { id: 5, name: 'Salle E' },
+            { id: 6, name: 'Amphithéâtre 1' },
+            { id: 7, name: 'Labo Chimie' },
+            { id: 8, name: 'Labo Physique' },
+            { id: 9, name: 'Salle Informatique' },
+            { id: 10, name: 'Salle de Conférence' },
+        ],
+
+        assignments: () => [
+            // --- March 12, 2026 ---
+            {
+                room: { id: 1, name: 'Salle A' },
+                date: '2026-03-12',
+                period: 'morning',
+                course: { code: 'MATH101', name: 'Mathématiques - Groupe 1', teacher_id: 1, id: 1 },
+            },
+            {
+                room: { id: 2, name: 'Salle B' },
+                date: '2026-03-12',
+                period: 'afternoon',
+                course: { code: 'PHYS101', name: 'Physique - Groupe 2', teacher_id: 2, id: 2 },
+            },
+            {
+                room: { id: 6, name: 'Amphithéâtre 1' },
+                date: '2026-03-12',
+                period: 'morning',
+                course: { code: 'HIST200', name: 'Histoire Moderne', teacher_id: 4, id: 4 },
+            },
+            {
+                room: { id: 9, name: 'Salle Informatique' },
+                date: '2026-03-12',
+                period: 'evening',
+                course: { code: 'CS50', name: 'Introduction au Code', teacher_id: 5, id: 5 },
+            },
+
+            // --- March 13, 2026 ---
+            {
+                room: { id: 3, name: 'Salle C' },
+                date: '2026-03-13',
+                period: 'evening',
+                course: { code: 'BIO101', name: 'Biologie - Groupe 3', teacher_id: 3, id: 3 },
+            },
+            {
+                room: { id: 7, name: 'Labo Chimie' },
+                date: '2026-03-13',
+                period: 'morning',
+                course: { code: 'CHEM202', name: 'Chimie Organique', teacher_id: 6, id: 6 },
+            },
+            {
+                room: { id: 4, name: 'Salle D' },
+                date: '2026-03-13',
+                period: 'afternoon',
+                course: { code: 'LIT301', name: 'Littérature Comparée', teacher_id: 7, id: 7 },
+            },
+
+            // --- March 14, 2026 ---
+            {
+                room: { id: 1, name: 'Salle A' },
+                date: '2026-03-14',
+                period: 'morning',
+                course: { code: 'MATH102', name: 'Algèbre Avancée', teacher_id: 1, id: 8 },
+            },
+            {
+                room: { id: 5, name: 'Salle E' },
+                date: '2026-03-14',
+                period: 'morning',
+                course: { code: 'ECON101', name: 'Macroéconomie', teacher_id: 8, id: 9 },
+            },
+            {
+                room: { id: 10, name: 'Salle de Conférence' },
+                date: '2026-03-14',
+                period: 'afternoon',
+                course: { code: 'PHIL101', name: 'Philosophie Éthique', teacher_id: 9, id: 10 },
+            },
+            {
+                room: { id: 2, name: 'Salle B' },
+                date: '2026-03-14',
+                period: 'evening',
+                course: { code: 'ART404', name: 'Histoire de l\'Art', teacher_id: 10, id: 11 },
+            },
+        ]
+    });
+
     type PeriodKey = 'morning' | 'afternoon' | 'evening';
 
-    type Room = {
-        id: number;
-        name: string;
-    };
-
-    type Occupation = {
-        roomId: number;
-        date: string;
-        period: PeriodKey;
-        groupName: string;
-    };
-
     type CellDetails = {
-        groupLabel: string;
-        courseLabel: string;
+        course: Course,
         theme: DerivedTheme;
     };
 
-    const ROOM_COUNT = 50;
-    const fromDate = '2026-03-10';
-    const toDate = '2026-03-30';
 
     type ZoomLevel = 'small' | 'normal' | 'large' | 'xl';
 
@@ -70,83 +154,8 @@
         return list;
     };
 
-    const hashToUnit = (seed: string) => {
-        let hash = 2166136261;
-
-        for (let i = 0; i < seed.length; i += 1) {
-            hash ^= seed.charCodeAt(i);
-            hash = Math.imul(hash, 16777619);
-        }
-
-        return (hash >>> 0) / 4294967295;
-    };
-
-    const roomPrefixes = ['A', 'B', 'C', 'D', 'E'];
-
-    const generateRooms = (count: number): Room[] => {
-        return Array.from({ length: count }, (_, index) => {
-            const id = index + 1;
-            const prefix = roomPrefixes[index % roomPrefixes.length];
-            const floor = Math.floor(index / 10) + 1;
-            const roomNumber = String((index % 10) + 1).padStart(2, '0');
-
-            return {
-                id,
-                name: `Local ${prefix}${floor}${roomNumber}`,
-            };
-        });
-    };
-
-    const groupPool = [
-        'Groupe 1 - Mathematiques',
-        'Groupe 2 - Physique',
-        'Groupe 3 - Biologie',
-        'Groupe 4 - Chimie',
-        'Groupe 5 - Anglais',
-        'Groupe 6 - Histoire',
-        'Groupe 7 - Geographie',
-        'Groupe 8 - Economie',
-        'Groupe 9 - Informatique',
-        'Groupe 10 - Reseaux',
-        'Groupe 11 - Electronique',
-        'Groupe 12 - Robotique',
-    ];
-
-    const generateOccupations = (
-        roomList: Room[],
-        dateKeys: string[],
-        periodList: Array<{ key: PeriodKey; label: string }>,
-    ): Occupation[] => {
-        const items: Occupation[] = [];
-
-        for (const room of roomList) {
-            for (const date of dateKeys) {
-                for (const period of periodList) {
-                    const slotKey = `${room.id}|${date}|${period.key}`;
-                    const occupancyChance = hashToUnit(slotKey);
-
-                    if (occupancyChance < 0.15) {
-                        const groupIndex = Math.floor(
-                            hashToUnit(`${slotKey}|group`) * groupPool.length,
-                        );
-
-                        items.push({
-                            roomId: room.id,
-                            date,
-                            period: period.key,
-                            groupName: groupPool[groupIndex],
-                        });
-                    }
-                }
-            }
-        }
-
-        return items;
-    };
-
-    const dateKeys = buildDateKeys(fromDate, toDate);
-    const rooms = generateRooms(ROOM_COUNT);
-    const occupations = ref(generateOccupations(rooms, dateKeys, periods));
+    const dateKeys = buildDateKeys(props.fromDate, props.toDate);
+    const assignments = ref([...props.assignments]);
 
     const dateLabelFormatter = new Intl.DateTimeFormat('fr-FR', {
         weekday: 'short',
@@ -166,69 +175,24 @@
         });
     });
 
-    const buildCellKey = (roomId: number, dateKey: string, period: PeriodKey) => {
-        return `${roomId}|${dateKey}|${period}`;
-    };
-
-    const occupationMap = computed(() => {
-        const map = new Map<string, string>();
-
-        for (const occupation of occupations.value) {
-            const key = buildCellKey(occupation.roomId, occupation.date, occupation.period);
-            map.set(key, occupation.groupName);
-        }
-
-        return map;
-    });
-
-    const getUsage = (roomId: number, dateKey: string, period: PeriodKey) => {
-        const key = buildCellKey(roomId, dateKey, period);
-        return occupationMap.value.get(key);
-    };
-
-    const groupBaseColors: Record<number, string> = {
-        1: '#2563eb',
-        2: '#0891b2',
-        3: '#10b981',
-        4: '#65a30d',
-        5: '#ca8a04',
-        6: '#ea580c',
-        7: '#db2777',
-        8: '#9333ea',
-        9: '#7c3aed',
-        10: '#1d4ed8',
-        11: '#0d9488',
-        12: '#57534e',
-    };
-
     const { resolvedAppearance } = useAppearance();
     const isDarkMode = computed(() => resolvedAppearance.value === 'dark');
 
-    const { deriveThemeFromBase } = useThemeDerivation(isDarkMode);
+    const { getThemeFromSeed } = useThemeDerivation(isDarkMode);
 
-    const getGroupTheme = (groupLabel: string) => {
-        const match = groupLabel.match(/groupe\s+(\d+)/i);
-
-        if (match) {
-            const number = Number.parseInt(match[1], 10);
-            const baseColor = groupBaseColors[number] ?? '#334155';
-            return deriveThemeFromBase(baseColor);
-        }
-
-        return deriveThemeFromBase('#334155');
+    const buildCellKey = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return `${roomId}|${dateKey}|${period}`;
     };
 
     const cellDetailsMap = computed(() => {
         const map = new Map<string, CellDetails>();
 
-        for (const occupation of occupations.value) {
-            const key = buildCellKey(occupation.roomId, occupation.date, occupation.period);
-            const [groupLabel, ...courseParts] = occupation.groupName.split(' - ');
+        for (const assigment of assignments.value) {
+            const key = buildCellKey(assigment.room.id, assigment.date, assigment.period);
 
             map.set(key, {
-                groupLabel,
-                courseLabel: courseParts.join(' - ') || 'Cours',
-                theme: getGroupTheme(groupLabel),
+                course: assigment.course,
+                theme: getThemeFromSeed(assigment.course.name)
             });
         }
 
@@ -240,30 +204,34 @@
         return cellDetailsMap.value.get(key);
     };
 
-    const draggedOccupationKey = ref<string | null>(null);
+    const draggedAssignmentKey = ref<string | null>(null);
     const dropTargetKey = ref<string | null>(null);
 
-    const findOccupationIndex = (roomId: number, dateKey: string, period: PeriodKey) => {
-        return occupations.value.findIndex((occupation) => {
-            return occupation.roomId === roomId
-                && occupation.date === dateKey
-                && occupation.period === period;
-        });
+    const isCellOccupied = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return cellDetailsMap.value.has(buildCellKey(roomId, dateKey, period));
     };
 
-    const updateOccupationSlot = (
-        occupation: Occupation,
+    const findAssignmentIndex = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return assignments.value.findIndex((assigment) => {
+            return assigment.room.id === roomId
+                && assigment.date === dateKey
+                && assigment.period === period;
+        })
+    };
+
+    const updateAssignmentSlot = (
+        assignment: Assignment,
         roomId: number,
         dateKey: string,
         period: PeriodKey,
     ) => {
-        occupation.roomId = roomId;
-        occupation.date = dateKey;
-        occupation.period = period;
+        assignment.room.id = roomId;
+        assignment.date = dateKey;
+        assignment.period = period;
     };
 
     const clearDragState = () => {
-        draggedOccupationKey.value = null;
+        draggedAssignmentKey.value = null;
         dropTargetKey.value = null;
     };
 
@@ -286,7 +254,7 @@
         preview.style.zIndex = '9999';
 
         const badge = document.createElement('div');
-        badge.textContent = details.groupLabel;
+        badge.textContent = details.course.code;
         badge.style.display = 'inline-block';
         badge.style.maxWidth = '100%';
         badge.style.marginBottom = '8px';
@@ -303,7 +271,7 @@
         badge.style.textTransform = 'uppercase';
 
         const title = document.createElement('div');
-        title.textContent = details.courseLabel;
+        title.textContent = details.course.name;
         title.style.color = details.theme.foreground;
         title.style.fontSize = zoom.value === 'small' ? '10px' : '13px';
         title.style.fontWeight = '700';
@@ -316,7 +284,7 @@
         return preview;
     };
 
-    const onOccupationDragStart = (
+    const onAssignmentDragStart = (
         roomId: number,
         dateKey: string,
         period: PeriodKey,
@@ -329,7 +297,7 @@
             return;
         }
 
-        draggedOccupationKey.value = key;
+        draggedAssignmentKey.value = key;
         dropTargetKey.value = key;
 
         if (event.dataTransfer) {
@@ -348,14 +316,14 @@
         period: PeriodKey,
         event: DragEvent,
     ) => {
-        if (!draggedOccupationKey.value) {
+        if (!draggedAssignmentKey.value) {
             return;
         }
 
-        const sourceKey = draggedOccupationKey.value;
+        const sourceKey = draggedAssignmentKey.value;
         const targetKey = buildCellKey(roomId, dateKey, period);
         const isSameCell = sourceKey === targetKey;
-        const targetUsed = findOccupationIndex(roomId, dateKey, period) !== -1;
+        const targetUsed = isCellOccupied(roomId, dateKey, period);
         const canDrop = isSameCell || !targetUsed;
 
         if (!canDrop) {
@@ -384,10 +352,10 @@
     ) => {
         event.preventDefault();
 
-        const sourceKey = draggedOccupationKey.value;
+        const sourceKey = draggedAssignmentKey.value;
         const targetKey = buildCellKey(roomId, dateKey, period);
         const isSameCell = sourceKey === targetKey;
-        const targetUsed = findOccupationIndex(roomId, dateKey, period) !== -1;
+        const targetUsed = isCellOccupied(roomId, dateKey, period);
 
         if (!sourceKey || isSameCell) {
             clearDragState();
@@ -400,7 +368,7 @@
         }
 
         const [sourceRoomId, sourceDate, sourcePeriod] = sourceKey.split('|');
-        const sourceIndex = findOccupationIndex(
+        const sourceIndex = findAssignmentIndex(
             Number.parseInt(sourceRoomId, 10),
             sourceDate,
             sourcePeriod as PeriodKey,
@@ -411,10 +379,10 @@
             return;
         }
 
-        const sourceOccupation = occupations.value[sourceIndex];
-        updateOccupationSlot(sourceOccupation, roomId, dateKey, period);
+        const sourceAssignment = assignments.value[sourceIndex];
+        updateAssignmentSlot(sourceAssignment, roomId, dateKey, period);
 
-        occupations.value = [...occupations.value];
+        assignments.value = [...assignments.value];
         clearDragState();
     };
 
@@ -422,8 +390,8 @@
         return dropTargetKey.value === buildCellKey(roomId, dateKey, period);
     };
 
-    const isDraggedOccupation = (roomId: number, dateKey: string, period: PeriodKey) => {
-        return draggedOccupationKey.value === buildCellKey(roomId, dateKey, period);
+    const isDraggedAssignment = (roomId: number, dateKey: string, period: PeriodKey) => {
+        return draggedAssignmentKey.value === buildCellKey(roomId, dateKey, period);
     };
 
     const headerTrackRef = ref<HTMLElement | null>(null);
@@ -575,14 +543,14 @@
                                         class="m-1 flex h-[calc(100%-0.5rem)] flex-col justify-between rounded-xl border shadow-[0_10px_20px_rgba(0,0,0,0.08)]"
                                         :class="[
                                             zoom === 'small' ? 'px-2 py-1.5' : 'px-3 py-2',
-                                            isDraggedOccupation(room.id, date.key, period.key)
+                                            isDraggedAssignment(room.id, date.key, period.key)
                                                 ? 'cursor-grabbing opacity-55'
                                                 : 'cursor-grab',
                                         ]" :style="{
                                             backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.background,
                                             borderColor: getCellDetails(room.id, date.key, period.key)?.theme.outline,
                                         }" draggable="true"
-                                        @dragstart="onOccupationDragStart(room.id, date.key, period.key, $event)"
+                                        @dragstart="onAssignmentDragStart(room.id, date.key, period.key, $event)"
                                         @dragend="clearDragState()">
                                         <div class="flex items-center justify-between gap-1">
                                             <span class="rounded-full font-bold uppercase tracking-wide truncate"
@@ -591,7 +559,7 @@
                                                     backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.accentBackground,
                                                     color: getCellDetails(room.id, date.key, period.key)?.theme.accentForeground,
                                                 }">
-                                                {{ getCellDetails(room.id, date.key, period.key)?.groupLabel }}
+                                                {{ getCellDetails(room.id, date.key, period.key)?.course.code }}
                                             </span>
                                             <span v-if="zoom !== 'small'" class="h-2.5 w-2.5 shrink-0 rounded-full"
                                                 :style="{
@@ -603,12 +571,7 @@
                                             :class="zoom === 'small' ? 'text-[10px]' : 'mt-2 text-sm'" :style="{
                                                 color: getCellDetails(room.id, date.key, period.key)?.theme.foreground
                                             }">
-                                            {{ getCellDetails(room.id, date.key, period.key)?.courseLabel }}
-                                        </div>
-
-                                        <div v-if="zoom !== 'small'"
-                                            class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                                            Secrétariat - créneau validé
+                                            {{ getCellDetails(room.id, date.key, period.key)?.course.name }}
                                         </div>
                                     </div>
 
