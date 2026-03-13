@@ -78,3 +78,16 @@ _Présentiel, 4h_
 - Création d'un composant de planning en tableau a deux entrées (date/periodes et locaux)
 - Affichage d'attributions "dummy" dans le scheduler
 - Ajout de la possibilitée de déplacer un cours vers un autre local / une autre date avec un glissé/déposé
+
+---
+
+## 13 mars 2026
+
+_Présentiel, 4h_
+
+### Planning
+
+- Amélioration du systeme de thème dynamique dans le component Scheduler
+- Refactor du Scheduler pour utiliser les props plutôt que des valeurs d'example
+- Préparation de l'intégration du Scheduler avec la base de donnée
+- Recherches sur la meilleur aproche pour la gestion des attributions
