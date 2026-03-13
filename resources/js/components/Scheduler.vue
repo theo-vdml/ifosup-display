@@ -2,6 +2,8 @@
     import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
     import { DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
+    import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
+    import { useAppearance } from '@/composables/useAppearance';
 
     type PeriodKey = 'morning' | 'afternoon' | 'evening';
 
@@ -17,19 +19,10 @@
         groupName: string;
     };
 
-    type GroupTheme = {
-        cardBg: string;
-        cardBorder: string;
-        cardText: string;
-        badgeBg: string;
-        badgeText: string;
-        accent: string;
-    };
-
     type CellDetails = {
         groupLabel: string;
         courseLabel: string;
-        theme: GroupTheme;
+        theme: DerivedTheme;
     };
 
     const ROOM_COUNT = 50;
@@ -208,63 +201,10 @@
         12: '#57534e',
     };
 
-    const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+    const { resolvedAppearance } = useAppearance();
+    const isDarkMode = computed(() => resolvedAppearance.value === 'dark');
 
-    const hexToRgb = (hex: string) => {
-        const clean = hex.replace('#', '');
-        const normalized = clean.length === 3
-            ? clean.split('').map((c) => c + c).join('')
-            : clean;
-        const int = Number.parseInt(normalized, 16);
-
-        return {
-            r: (int >> 16) & 255,
-            g: (int >> 8) & 255,
-            b: int & 255,
-        };
-    };
-
-    const mixRgb = (
-        base: { r: number; g: number; b: number },
-        target: { r: number; g: number; b: number },
-        factor: number,
-    ) => {
-        return {
-            r: clamp(base.r + (target.r - base.r) * factor),
-            g: clamp(base.g + (target.g - base.g) * factor),
-            b: clamp(base.b + (target.b - base.b) * factor),
-        };
-    };
-
-    const rgbToCss = (rgb: { r: number; g: number; b: number }) => {
-        return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-    };
-
-    const deriveThemeFromBase = (baseHex: string, dark: boolean): GroupTheme => {
-        const base = hexToRgb(baseHex);
-        const white = { r: 255, g: 255, b: 255 };
-        const black = { r: 0, g: 0, b: 0 };
-
-        if (dark) {
-            return {
-                accent: rgbToCss(mixRgb(base, white, 0.1)),
-                cardBg: rgbToCss(mixRgb(base, black, 0.78)),
-                cardBorder: rgbToCss(mixRgb(base, black, 0.38)),
-                cardText: rgbToCss(mixRgb(base, white, 0.72)),
-                badgeBg: rgbToCss(mixRgb(base, black, 0.58)),
-                badgeText: rgbToCss(mixRgb(base, white, 0.64)),
-            };
-        }
-
-        return {
-            accent: rgbToCss(base),
-            cardBg: rgbToCss(mixRgb(base, white, 0.82)),
-            cardBorder: rgbToCss(mixRgb(base, black, 0.12)),
-            cardText: rgbToCss(mixRgb(base, black, 0.55)),
-            badgeBg: rgbToCss(mixRgb(base, white, 0.7)),
-            badgeText: rgbToCss(mixRgb(base, black, 0.4)),
-        };
-    };
+    const { deriveThemeFromBase } = useThemeDerivation(isDarkMode);
 
     const getGroupTheme = (groupLabel: string) => {
         const match = groupLabel.match(/groupe\s+(\d+)/i);
@@ -272,10 +212,10 @@
         if (match) {
             const number = Number.parseInt(match[1], 10);
             const baseColor = groupBaseColors[number] ?? '#334155';
-            return deriveThemeFromBase(baseColor, isDarkMode.value);
+            return deriveThemeFromBase(baseColor);
         }
 
-        return deriveThemeFromBase('#334155', isDarkMode.value);
+        return deriveThemeFromBase('#334155');
     };
 
     const cellDetailsMap = computed(() => {
@@ -335,8 +275,8 @@
         preview.style.width = `${Math.min(currentZoom.value.cellWidth - 8, 280)}px`;
         preview.style.padding = zoom.value === 'small' ? '6px 8px' : '10px 12px';
         preview.style.borderRadius = '16px';
-        preview.style.border = `1px solid ${details.theme.cardBorder}`;
-        preview.style.background = details.theme.cardBg;
+        preview.style.border = `1px solid ${details.theme.outline}`;
+        preview.style.background = details.theme.background;
         preview.style.boxShadow = '0 18px 40px rgba(0, 0, 0, 0.18)';
         preview.style.backdropFilter = 'blur(10px)';
         preview.style.setProperty('-webkit-backdrop-filter', 'blur(10px)');
@@ -355,8 +295,8 @@
         badge.style.overflow = 'hidden';
         badge.style.whiteSpace = 'nowrap';
         badge.style.textOverflow = 'ellipsis';
-        badge.style.background = details.theme.badgeBg;
-        badge.style.color = details.theme.badgeText;
+        badge.style.background = details.theme.accentBackground;
+        badge.style.color = details.theme.accentForeground
         badge.style.fontSize = zoom.value === 'small' ? '8px' : '10px';
         badge.style.fontWeight = '700';
         badge.style.letterSpacing = '0.08em';
@@ -364,7 +304,7 @@
 
         const title = document.createElement('div');
         title.textContent = details.courseLabel;
-        title.style.color = details.theme.cardText;
+        title.style.color = details.theme.foreground;
         title.style.fontSize = zoom.value === 'small' ? '10px' : '13px';
         title.style.fontWeight = '700';
         title.style.lineHeight = '1.2';
@@ -489,9 +429,6 @@
     const headerTrackRef = ref<HTMLElement | null>(null);
     const roomTrackRef = ref<HTMLElement | null>(null);
     const gridScrollerRef = ref<HTMLElement | null>(null);
-    const isDarkMode = ref(false);
-
-    let themeObserver: MutationObserver | null = null;
 
     let animationFrameId: number | null = null;
     let pendingLeft = 0;
@@ -535,19 +472,7 @@
         animationFrameId = requestAnimationFrame(syncTracks);
     };
 
-    const refreshThemeMode = () => {
-        isDarkMode.value = document.documentElement.classList.contains('dark');
-    };
-
     onMounted(() => {
-        refreshThemeMode();
-
-        themeObserver = new MutationObserver(refreshThemeMode);
-        themeObserver.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['class'],
-        });
-
         const scroller = gridScrollerRef.value;
         if (!scroller) {
             return;
@@ -559,11 +484,6 @@
     });
 
     onBeforeUnmount(() => {
-        if (themeObserver) {
-            themeObserver.disconnect();
-            themeObserver = null;
-        }
-
         if (animationFrameId !== null) {
             cancelAnimationFrame(animationFrameId);
         }
@@ -659,8 +579,8 @@
                                                 ? 'cursor-grabbing opacity-55'
                                                 : 'cursor-grab',
                                         ]" :style="{
-                                            backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.cardBg,
-                                            borderColor: getCellDetails(room.id, date.key, period.key)?.theme.cardBorder,
+                                            backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.background,
+                                            borderColor: getCellDetails(room.id, date.key, period.key)?.theme.outline,
                                         }" draggable="true"
                                         @dragstart="onOccupationDragStart(room.id, date.key, period.key, $event)"
                                         @dragend="clearDragState()">
@@ -668,20 +588,20 @@
                                             <span class="rounded-full font-bold uppercase tracking-wide truncate"
                                                 :class="zoom === 'small' ? 'text-[8px] px-1.5 py-0' : 'text-[10px] px-2 py-0.5'"
                                                 :style="{
-                                                    backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.badgeBg,
-                                                    color: getCellDetails(room.id, date.key, period.key)?.theme.badgeText,
+                                                    backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.accentBackground,
+                                                    color: getCellDetails(room.id, date.key, period.key)?.theme.accentForeground,
                                                 }">
                                                 {{ getCellDetails(room.id, date.key, period.key)?.groupLabel }}
                                             </span>
                                             <span v-if="zoom !== 'small'" class="h-2.5 w-2.5 shrink-0 rounded-full"
                                                 :style="{
-                                                    backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.accent,
+                                                    backgroundColor: getCellDetails(room.id, date.key, period.key)?.theme.primary,
                                                 }" />
                                         </div>
 
                                         <div class="leading-tight font-semibold wrap-break-word"
                                             :class="zoom === 'small' ? 'text-[10px]' : 'mt-2 text-sm'" :style="{
-                                                color: getCellDetails(room.id, date.key, period.key)?.theme.cardText,
+                                                color: getCellDetails(room.id, date.key, period.key)?.theme.foreground
                                             }">
                                             {{ getCellDetails(room.id, date.key, period.key)?.courseLabel }}
                                         </div>
