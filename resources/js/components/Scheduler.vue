@@ -1,28 +1,27 @@
 <script setup lang="ts">
-    import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-    import { CpuIcon, DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
+    import { computed, onMounted, ref, watch } from 'vue';
+    import { DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
     import { useSyncScroll } from '@/composables/useSyncScroll';
 
-    interface SchedulerProps {
+    type AssignmentWithRelations = Assignment & {
+        course: Course;
+        room?: Room;
+    };
 
+    interface SchedulerProps {
         fromDate?: string
         toDate?: string
         rooms: Room[]
-        assignments: Assignment[]
-
+        assignments: AssignmentWithRelations[]
     };
 
     const props = withDefaults(defineProps<SchedulerProps>(), {
         fromDate: '2026-03-01',
         toDate: '2026-03-30',
     });
-
-    console.log('Assignments', props.assignments);
-
-    type PeriodKey = 'morning' | 'afternoon' | 'evening';
 
     type CellDetails = {
         course: Course,
@@ -47,7 +46,7 @@
         xl: { cellWidth: 448, roomColWidth: 240, cellHeight: 144 },
     };
 
-    const periods: Array<{ key: PeriodKey; label: string }> = [
+    const periods: Array<{ key: AssignmentPeriod; label: string }> = [
         { key: 'morning', label: 'Matin' },
         { key: 'afternoon', label: 'Apres-midi' },
         { key: 'evening', label: 'Soir' },
@@ -72,6 +71,7 @@
     };
 
     const dateKeys = buildDateKeys(props.fromDate, props.toDate);
+
     const assignments = ref([...props.assignments]);
 
     const dateLabelFormatter = new Intl.DateTimeFormat('fr-FR', {
@@ -97,7 +97,7 @@
 
     const { getThemeFromSeed } = useThemeDerivation(isDarkMode);
 
-    const buildCellKey = (roomId: number, dateKey: string, period: PeriodKey) => {
+    const buildCellKey = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return `${roomId}|${dateKey}|${period}`;
     };
 
@@ -105,13 +105,13 @@
         const map = new Map<string, CellDetails>();
 
         for (const assigment of assignments.value) {
-            if (!assigment.room || !assigment.course) {
+
+            if (!assigment.room_id) {
                 continue;
             }
 
-            console.log('Processing assignment:', assigment);
-            const key = buildCellKey(assigment.room.id, assigment.date, assigment.period);
-            console.log('Generated cell key:', key);
+            const key = buildCellKey(assigment.room_id, assigment.date, assigment.period);
+
             map.set(key, {
                 course: assigment.course,
                 theme: getThemeFromSeed(assigment.course.name)
@@ -121,7 +121,7 @@
         return map;
     });
 
-    const getCellDetails = (roomId: number, dateKey: string, period: PeriodKey) => {
+    const getCellDetails = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         const key = buildCellKey(roomId, dateKey, period);
         return cellDetailsMap.value.get(key);
     };
@@ -129,13 +129,13 @@
     const draggedAssignmentKey = ref<string | null>(null);
     const dropTargetKey = ref<string | null>(null);
 
-    const isCellOccupied = (roomId: number, dateKey: string, period: PeriodKey) => {
+    const isCellOccupied = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return cellDetailsMap.value.has(buildCellKey(roomId, dateKey, period));
     };
 
-    const findAssignmentIndex = (roomId: number, dateKey: string, period: PeriodKey) => {
+    const findAssignmentIndex = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return assignments.value.findIndex((assigment) => {
-            return assigment.room?.id === roomId
+            return assigment.room_id === roomId
                 && assigment.date === dateKey
                 && assigment.period === period;
         })
@@ -145,13 +145,9 @@
         assignment: Assignment,
         roomId: number,
         dateKey: string,
-        period: PeriodKey,
+        period: AssignmentPeriod,
     ) => {
-        if (!assignment.room) {
-            assignment.room = { id: roomId, name: '' } as Room;
-        } else {
-            assignment.room.id = roomId;
-        }
+        assignment.room_id = roomId;
         assignment.date = dateKey;
         assignment.period = period;
     };
@@ -213,7 +209,7 @@
     const onAssignmentDragStart = (
         roomId: number,
         dateKey: string,
-        period: PeriodKey,
+        period: AssignmentPeriod,
         event: DragEvent,
     ) => {
         const key = buildCellKey(roomId, dateKey, period);
@@ -239,7 +235,7 @@
     const onCellDragOver = (
         roomId: number,
         dateKey: string,
-        period: PeriodKey,
+        period: AssignmentPeriod,
         event: DragEvent,
     ) => {
         if (!draggedAssignmentKey.value) {
@@ -273,7 +269,7 @@
     const onCellDrop = (
         roomId: number,
         dateKey: string,
-        period: PeriodKey,
+        period: AssignmentPeriod,
         event: DragEvent,
     ) => {
         event.preventDefault();
@@ -297,7 +293,7 @@
         const sourceIndex = findAssignmentIndex(
             Number.parseInt(sourceRoomId, 10),
             sourceDate,
-            sourcePeriod as PeriodKey,
+            sourcePeriod as AssignmentPeriod,
         );
 
         if (sourceIndex === -1) {
@@ -312,11 +308,11 @@
         clearDragState();
     };
 
-    const isDropTarget = (roomId: number, dateKey: string, period: PeriodKey) => {
+    const isDropTarget = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return dropTargetKey.value === buildCellKey(roomId, dateKey, period);
     };
 
-    const isDraggedAssignment = (roomId: number, dateKey: string, period: PeriodKey) => {
+    const isDraggedAssignment = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return draggedAssignmentKey.value === buildCellKey(roomId, dateKey, period);
     };
 
