@@ -91,3 +91,16 @@ _Présentiel, 4h_
 - Refactor du Scheduler pour utiliser les props plutôt que des valeurs d'example
 - Préparation de l'intégration du Scheduler avec la base de donnée
 - Recherches sur la meilleur aproche pour la gestion des attributions
+
+---
+
+## 16 mars 2026
+
+_Distanciel, 8h_
+
+### Développement du composant Planning
+
+- Refactoring technique : Extraction des logiques de navigation (scroll, zoom, plein écran) vers des composables dédiés afin d'alléger le composant et d'améliorer la réutilisabilité du code.
+- Architecture de données : Conception du modèle de données et création des migrations nécessaires pour la gestion des Assignments
+- Intégration Backend : Mise à jour du Scheduler pour assurer le passage de données dynamiques issues de la base de données via les props.
+- Environnement de test : Développement de factories et de seeders pour générer des jeux de données de test réalistes et faciliter les phases de recette.
