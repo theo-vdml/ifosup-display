@@ -1,9 +1,10 @@
 <script setup lang="ts">
-    import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+    import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
     import { DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
+    import { useSyncScroll } from '@/composables/useSyncScroll';
 
     interface SchedulerProps {
 
@@ -394,67 +395,16 @@
         return draggedAssignmentKey.value === buildCellKey(roomId, dateKey, period);
     };
 
-    const headerTrackRef = ref<HTMLElement | null>(null);
-    const roomTrackRef = ref<HTMLElement | null>(null);
-    const gridScrollerRef = ref<HTMLElement | null>(null);
-
-    let animationFrameId: number | null = null;
-    let pendingLeft = 0;
-    let pendingTop = 0;
-    let appliedLeft = -1;
-    let appliedTop = -1;
-
-    const syncTracks = () => {
-        if (pendingLeft === appliedLeft && pendingTop === appliedTop) {
-            animationFrameId = null;
-            return;
-        }
-
-        if (headerTrackRef.value) {
-            headerTrackRef.value.style.transform = `translateX(-${pendingLeft}px)`;
-        }
-
-        if (roomTrackRef.value) {
-            roomTrackRef.value.style.transform = `translateY(-${pendingTop}px)`;
-        }
-
-        appliedLeft = pendingLeft;
-        appliedTop = pendingTop;
-
-        animationFrameId = null;
-    };
-
-    const onGridScroll = (event: Event) => {
-        const target = event.target as HTMLElement;
-        pendingLeft = Math.round(target.scrollLeft);
-        pendingTop = Math.round(target.scrollTop);
-
-        if (pendingLeft === appliedLeft && pendingTop === appliedTop) {
-            return;
-        }
-
-        if (animationFrameId !== null) {
-            return;
-        }
-
-        animationFrameId = requestAnimationFrame(syncTracks);
-    };
+    const {
+        headerTrackRef,
+        sidebarTrackRef,
+        gridScrollerRef,
+        onGridScroll,
+        forceSync
+    } = useSyncScroll();
 
     onMounted(() => {
-        const scroller = gridScrollerRef.value;
-        if (!scroller) {
-            return;
-        }
-
-        pendingLeft = Math.round(scroller.scrollLeft);
-        pendingTop = Math.round(scroller.scrollTop);
-        syncTracks();
-    });
-
-    onBeforeUnmount(() => {
-        if (animationFrameId !== null) {
-            cancelAnimationFrame(animationFrameId);
-        }
+        forceSync();
     });
 
     const zoom = ref<ZoomLevel>('normal');
@@ -474,6 +424,10 @@
     const cellHeight = computed(() => `${currentZoom.value.cellHeight}px`);
 
     const isFullscreen = ref(false);
+
+    watch(zoom, () => {
+        forceSync();
+    });
 </script>
 
 <template>
@@ -519,7 +473,7 @@
             <div class="flex min-h-0 flex-1">
                 <div class="shrink-0 overflow-hidden border-r border-zinc-300/70 dark:border-zinc-700/70"
                     :style="{ width: roomColWidth }">
-                    <div ref="roomTrackRef" class="transform-gpu will-change-transform">
+                    <div ref="sidebarTrackRef" class="transform-gpu will-change-transform">
                         <div v-for="room in rooms" :key="`room-${room.id}`"
                             class="border-b border-zinc-200/70 bg-zinc-100/60 px-4 py-2.5 text-left font-medium text-zinc-500 dark:border-zinc-700/70 dark:bg-zinc-900/55 dark:text-zinc-300 flex items-center"
                             :style="{ height: cellHeight }">
