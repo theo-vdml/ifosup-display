@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-    import { DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
+    import { CpuIcon, DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
@@ -10,101 +10,17 @@
 
         fromDate?: string
         toDate?: string
-        rooms?: Room[]
-        assignments?: Assignment[]
+        rooms: Room[]
+        assignments: Assignment[]
 
     };
 
     const props = withDefaults(defineProps<SchedulerProps>(), {
-        fromDate: '2026-03-10',
+        fromDate: '2026-03-01',
         toDate: '2026-03-30',
-        rooms: () => [
-            { id: 1, name: 'Salle A' },
-            { id: 2, name: 'Salle B' },
-            { id: 3, name: 'Salle C' },
-            { id: 4, name: 'Salle D' },
-            { id: 5, name: 'Salle E' },
-            { id: 6, name: 'Amphithéâtre 1' },
-            { id: 7, name: 'Labo Chimie' },
-            { id: 8, name: 'Labo Physique' },
-            { id: 9, name: 'Salle Informatique' },
-            { id: 10, name: 'Salle de Conférence' },
-        ],
-
-        assignments: () => [
-            // --- March 12, 2026 ---
-            {
-                room: { id: 1, name: 'Salle A' },
-                date: '2026-03-12',
-                period: 'morning',
-                course: { code: 'MATH101', name: 'Mathématiques - Groupe 1', teacher_id: 1, id: 1 },
-            },
-            {
-                room: { id: 2, name: 'Salle B' },
-                date: '2026-03-12',
-                period: 'afternoon',
-                course: { code: 'PHYS101', name: 'Physique - Groupe 2', teacher_id: 2, id: 2 },
-            },
-            {
-                room: { id: 6, name: 'Amphithéâtre 1' },
-                date: '2026-03-12',
-                period: 'morning',
-                course: { code: 'HIST200', name: 'Histoire Moderne', teacher_id: 4, id: 4 },
-            },
-            {
-                room: { id: 9, name: 'Salle Informatique' },
-                date: '2026-03-12',
-                period: 'evening',
-                course: { code: 'CS50', name: 'Introduction au Code', teacher_id: 5, id: 5 },
-            },
-
-            // --- March 13, 2026 ---
-            {
-                room: { id: 3, name: 'Salle C' },
-                date: '2026-03-13',
-                period: 'evening',
-                course: { code: 'BIO101', name: 'Biologie - Groupe 3', teacher_id: 3, id: 3 },
-            },
-            {
-                room: { id: 7, name: 'Labo Chimie' },
-                date: '2026-03-13',
-                period: 'morning',
-                course: { code: 'CHEM202', name: 'Chimie Organique', teacher_id: 6, id: 6 },
-            },
-            {
-                room: { id: 4, name: 'Salle D' },
-                date: '2026-03-13',
-                period: 'afternoon',
-                course: { code: 'LIT301', name: 'Littérature Comparée', teacher_id: 7, id: 7 },
-            },
-
-            // --- March 14, 2026 ---
-            {
-                room: { id: 1, name: 'Salle A' },
-                date: '2026-03-14',
-                period: 'morning',
-                course: { code: 'MATH102', name: 'Algèbre Avancée', teacher_id: 1, id: 8 },
-            },
-            {
-                room: { id: 5, name: 'Salle E' },
-                date: '2026-03-14',
-                period: 'morning',
-                course: { code: 'ECON101', name: 'Macroéconomie', teacher_id: 8, id: 9 },
-            },
-            {
-                room: { id: 10, name: 'Salle de Conférence' },
-                date: '2026-03-14',
-                period: 'afternoon',
-                course: { code: 'PHIL101', name: 'Philosophie Éthique', teacher_id: 9, id: 10 },
-            },
-            {
-                room: { id: 2, name: 'Salle B' },
-                date: '2026-03-14',
-                period: 'evening',
-                course: { code: 'ART404', name: 'Histoire de l\'Art', teacher_id: 10, id: 11 },
-            },
-        ]
     });
+
+    console.log('Assignments', props.assignments);
 
     type PeriodKey = 'morning' | 'afternoon' | 'evening';
 
@@ -189,8 +105,13 @@
         const map = new Map<string, CellDetails>();
 
         for (const assigment of assignments.value) {
-            const key = buildCellKey(assigment.room.id, assigment.date, assigment.period);
+            if (!assigment.room || !assigment.course) {
+                continue;
+            }
 
+            console.log('Processing assignment:', assigment);
+            const key = buildCellKey(assigment.room.id, assigment.date, assigment.period);
+            console.log('Generated cell key:', key);
             map.set(key, {
                 course: assigment.course,
                 theme: getThemeFromSeed(assigment.course.name)
@@ -214,7 +135,7 @@
 
     const findAssignmentIndex = (roomId: number, dateKey: string, period: PeriodKey) => {
         return assignments.value.findIndex((assigment) => {
-            return assigment.room.id === roomId
+            return assigment.room?.id === roomId
                 && assigment.date === dateKey
                 && assigment.period === period;
         })
@@ -226,7 +147,11 @@
         dateKey: string,
         period: PeriodKey,
     ) => {
-        assignment.room.id = roomId;
+        if (!assignment.room) {
+            assignment.room = { id: roomId, name: '' } as Room;
+        } else {
+            assignment.room.id = roomId;
+        }
         assignment.date = dateKey;
         assignment.period = period;
     };

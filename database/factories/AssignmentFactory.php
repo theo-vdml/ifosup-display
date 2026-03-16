@@ -21,7 +21,7 @@ class AssignmentFactory extends Factory
         return [
             'course_id' => Course::factory(),
             'room_id' => fake()->boolean(90) ? Room::factory() : null,
-            'date' => fake()->dateTimeBetween('-2 weeks', '+2 months')->format('Y-m-d'),
+            'date' => fake()->dateTimeThisMonth()->format('Y-m-d'),
             'period' => fake()->randomElement(['morning', 'afternoon', 'evening']),
         ];
     }

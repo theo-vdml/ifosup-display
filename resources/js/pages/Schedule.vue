@@ -4,6 +4,13 @@
     import { schedule } from '@/routes';
     import { BreadcrumbItem } from '@/types';
 
+    const props = defineProps<{
+        rooms: Room[]
+        assignments: Assignment[]
+    }>();
+
+    console.log('Schedule props:', props);
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Planning',
@@ -16,7 +23,7 @@
 <template>
     <AppLayout :breadcrumbs>
         <div class="h-full p-4">
-            <Scheduler />
+            <Scheduler :rooms :assignments />
         </div>
     </AppLayout>
 </template>
