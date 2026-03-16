@@ -5,6 +5,7 @@
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
     import { useSyncScroll } from '@/composables/useSyncScroll';
+    import useSchedulerView from '@/composables/useSchedulerView';
 
     type AssignmentWithRelations = Assignment & {
         course: Course;
@@ -26,24 +27,6 @@
     type CellDetails = {
         course: Course,
         theme: DerivedTheme;
-    };
-
-
-    type ZoomLevel = 'small' | 'normal' | 'large' | 'xl';
-
-    const ZOOM_LEVELS: ZoomLevel[] = ['small', 'normal', 'large', 'xl'];
-    const ZOOM_LABELS: Record<ZoomLevel, string> = {
-        small: '0.5',
-        normal: '1.0',
-        large: '1.5',
-        xl: '2.0',
-    };
-
-    const zoomConfig: Record<ZoomLevel, { cellWidth: number; roomColWidth: number; cellHeight: number }> = {
-        small: { cellWidth: 148, roomColWidth: 128, cellHeight: 64 },
-        normal: { cellWidth: 288, roomColWidth: 176, cellHeight: 96 },
-        large: { cellWidth: 352, roomColWidth: 200, cellHeight: 112 },
-        xl: { cellWidth: 448, roomColWidth: 240, cellHeight: 144 },
     };
 
     const periods: Array<{ key: AssignmentPeriod; label: string }> = [
@@ -157,12 +140,23 @@
         dropTargetKey.value = null;
     };
 
+    const BASE_CELL_WIDTH = 288;
+    const BASE_CELL_HEIGHT = 96;
+
+    // roomColWidth is intentionally fixed — it only needs to fit room labels
+    const roomColWidth = '176px';
+    const cellWidth = computed(() => `${Math.round(BASE_CELL_WIDTH * zoomRatio.value)}px`);
+    // height range is clamped to 0.75→1.5 to avoid extremes at small/xl zoom
+    const cellHeightRatio = computed(() => 0.75 + (zoomRatio.value - 0.5) * 0.5);
+    const cellHeight = computed(() => `${Math.round(BASE_CELL_HEIGHT * cellHeightRatio.value)}px`);
+    const dateGroupWidth = computed(() => `${Math.round(BASE_CELL_WIDTH * zoomRatio.value) * periods.length}px`);
+
     const buildDragPreview = (details: CellDetails) => {
         const preview = document.createElement('div');
         preview.style.position = 'fixed';
         preview.style.top = '-9999px';
         preview.style.left = '-9999px';
-        preview.style.width = `${Math.min(currentZoom.value.cellWidth - 8, 280)}px`;
+        preview.style.width = `${Math.min(Math.round(BASE_CELL_WIDTH * zoomRatio.value) - 8, 280)}px`;
         preview.style.padding = zoom.value === 'small' ? '6px 8px' : '10px 12px';
         preview.style.borderRadius = '16px';
         preview.style.border = `1px solid ${details.theme.outline}`;
@@ -324,27 +318,21 @@
         forceSync
     } = useSyncScroll();
 
+    const {
+        zoom,
+        zoomRatio,
+        isFullscreen,
+        canZoomIn,
+        canZoomOut,
+        zoomIn,
+        zoomOut,
+        toggleFullscreen,
+        zoomLabel,
+    } = useSchedulerView();
+
     onMounted(() => {
         forceSync();
     });
-
-    const zoom = ref<ZoomLevel>('normal');
-
-    const zoomIndex = computed(() => ZOOM_LEVELS.indexOf(zoom.value));
-    const canZoomIn = computed(() => zoomIndex.value < ZOOM_LEVELS.length - 1);
-    const canZoomOut = computed(() => zoomIndex.value > 0);
-
-    const zoomIn = () => { if (canZoomIn.value) zoom.value = ZOOM_LEVELS[zoomIndex.value + 1]; };
-    const zoomOut = () => { if (canZoomOut.value) zoom.value = ZOOM_LEVELS[zoomIndex.value - 1]; };
-
-    const currentZoom = computed(() => zoomConfig[zoom.value]);
-    const zoomLabel = computed(() => ZOOM_LABELS[zoom.value]);
-    const dateGroupWidth = computed(() => `${periods.length * currentZoom.value.cellWidth}px`);
-    const roomColWidth = computed(() => `${currentZoom.value.roomColWidth}px`);
-    const cellWidth = computed(() => `${currentZoom.value.cellWidth}px`);
-    const cellHeight = computed(() => `${currentZoom.value.cellHeight}px`);
-
-    const isFullscreen = ref(false);
 
     watch(zoom, () => {
         forceSync();
@@ -484,7 +472,7 @@
 
             <button
                 class="flex cursor-pointer items-center justify-center rounded-lg border border-zinc-200/80 bg-white/80 p-1.5 text-zinc-400 shadow-sm backdrop-blur-sm transition-colors hover:border-zinc-300 hover:text-zinc-600 dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-500 dark:hover:border-zinc-600 dark:hover:text-zinc-300"
-                @click="isFullscreen = !isFullscreen">
+                @click="toggleFullscreen">
                 <Maximize2 v-if="!isFullscreen" class="h-3.5 w-3.5" />
                 <Minimize2 v-else class="h-3.5 w-3.5" />
             </button>
