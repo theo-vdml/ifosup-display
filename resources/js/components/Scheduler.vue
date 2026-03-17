@@ -1,11 +1,12 @@
 <script setup lang="ts">
-    import { computed, onMounted, ref, watch } from 'vue';
+    import { computed, nextTick, onMounted, ref, watch } from 'vue';
     import { DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
     import { useSyncScroll } from '@/composables/useSyncScroll';
     import useSchedulerView from '@/composables/useSchedulerView';
+    import SchedulerDragPreview from './SchedulerDragPreview.vue';
 
     type AssignmentWithRelations = Assignment & {
         course: Course;
@@ -111,6 +112,8 @@
 
     const draggedAssignmentKey = ref<string | null>(null);
     const dropTargetKey = ref<string | null>(null);
+    const draggedCellDetails = ref<CellDetails | null>(null);
+    const dragPreviewRef = ref<HTMLElement | null>(null);
 
     const isCellOccupied = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return cellDetailsMap.value.has(buildCellKey(roomId, dateKey, period));
@@ -138,6 +141,7 @@
     const clearDragState = () => {
         draggedAssignmentKey.value = null;
         dropTargetKey.value = null;
+        draggedCellDetails.value = null;
     };
 
     const BASE_CELL_WIDTH = 288;
@@ -151,56 +155,11 @@
     const cellHeight = computed(() => `${Math.round(BASE_CELL_HEIGHT * cellHeightRatio.value)}px`);
     const dateGroupWidth = computed(() => `${Math.round(BASE_CELL_WIDTH * zoomRatio.value) * periods.length}px`);
 
-    const buildDragPreview = (details: CellDetails) => {
-        const preview = document.createElement('div');
-        preview.style.position = 'fixed';
-        preview.style.top = '-9999px';
-        preview.style.left = '-9999px';
-        preview.style.width = `${Math.min(Math.round(BASE_CELL_WIDTH * zoomRatio.value) - 8, 280)}px`;
-        preview.style.padding = zoom.value === 'small' ? '6px 8px' : '10px 12px';
-        preview.style.borderRadius = '16px';
-        preview.style.border = `1px solid ${details.theme.outline}`;
-        preview.style.background = details.theme.background;
-        preview.style.boxShadow = '0 18px 40px rgba(0, 0, 0, 0.18)';
-        preview.style.backdropFilter = 'blur(10px)';
-        preview.style.setProperty('-webkit-backdrop-filter', 'blur(10px)');
-        preview.style.pointerEvents = 'none';
-        preview.style.transform = 'rotate(-2deg)';
-        preview.style.opacity = '0.96';
-        preview.style.zIndex = '9999';
+    const dragPreviewWidth = computed(() => {
+        return Math.min(Math.round(BASE_CELL_WIDTH * zoomRatio.value) - 8, 280);
+    });
 
-        const badge = document.createElement('div');
-        badge.textContent = details.course.code;
-        badge.style.display = 'inline-block';
-        badge.style.maxWidth = '100%';
-        badge.style.marginBottom = '8px';
-        badge.style.padding = zoom.value === 'small' ? '1px 6px' : '2px 8px';
-        badge.style.borderRadius = '999px';
-        badge.style.overflow = 'hidden';
-        badge.style.whiteSpace = 'nowrap';
-        badge.style.textOverflow = 'ellipsis';
-        badge.style.background = details.theme.accentBackground;
-        badge.style.color = details.theme.accentForeground
-        badge.style.fontSize = zoom.value === 'small' ? '8px' : '10px';
-        badge.style.fontWeight = '700';
-        badge.style.letterSpacing = '0.08em';
-        badge.style.textTransform = 'uppercase';
-
-        const title = document.createElement('div');
-        title.textContent = details.course.name;
-        title.style.color = details.theme.foreground;
-        title.style.fontSize = zoom.value === 'small' ? '10px' : '13px';
-        title.style.fontWeight = '700';
-        title.style.lineHeight = '1.2';
-
-        preview.appendChild(badge);
-        preview.appendChild(title);
-        document.body.appendChild(preview);
-
-        return preview;
-    };
-
-    const onAssignmentDragStart = (
+    const onAssignmentDragStart = async (
         roomId: number,
         dateKey: string,
         period: AssignmentPeriod,
@@ -215,14 +174,16 @@
 
         draggedAssignmentKey.value = key;
         dropTargetKey.value = key;
+        draggedCellDetails.value = details;
 
         if (event.dataTransfer) {
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/plain', key);
+            await nextTick();
 
-            const preview = buildDragPreview(details);
-            event.dataTransfer.setDragImage(preview, 24, 20);
-            requestAnimationFrame(() => preview.remove());
+            if (dragPreviewRef.value) {
+                event.dataTransfer.setDragImage(dragPreviewRef.value, 24, 20);
+            }
         }
     };
 
@@ -477,5 +438,12 @@
                 <Minimize2 v-else class="h-3.5 w-3.5" />
             </button>
         </div>
+
+        <Teleport to="body">
+            <div v-if="draggedCellDetails" ref="dragPreviewRef" class="fixed pointer-events-none opacity-95 -rotate-2"
+                :style="{ top: '-9999px', left: '-9999px', zIndex: 9999 }">
+                <SchedulerDragPreview :details="draggedCellDetails" :zoom="zoom" :width="dragPreviewWidth" />
+            </div>
+        </Teleport>
     </div>
 </template>
