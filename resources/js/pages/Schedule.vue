@@ -8,6 +8,8 @@
         rooms: Room[]
         courses: Course[]
         assignments: AssignmentWithRelations[]
+        fromDate: string
+        toDate: string
     }>();
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -22,7 +24,7 @@
 <template>
     <AppLayout :breadcrumbs>
         <div class="h-full p-4">
-            <Scheduler :rooms :courses :assignments />
+            <Scheduler :rooms :courses :assignments :from-date="props.fromDate" :to-date="props.toDate" />
         </div>
     </AppLayout>
 </template>

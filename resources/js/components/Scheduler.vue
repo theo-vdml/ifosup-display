@@ -1,4 +1,5 @@
 <script setup lang="ts">
+    import { router } from '@inertiajs/vue3';
     import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
     import { BookOpen, DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
@@ -6,6 +7,8 @@
     import { useAppearance } from '@/composables/useAppearance';
     import { useSyncScroll } from '@/composables/useSyncScroll';
     import useSchedulerView, { type ZoomLevel } from '@/composables/useSchedulerView';
+    import { schedule } from '@/routes';
+    import SchedulerDateRangePicker from './SchedulerDateRangePicker.vue';
     import SchedulerAssignmentCard from './SchedulerAssignmentCard.vue';
     import SchedulerDragPreview from './SchedulerDragPreview.vue';
 
@@ -93,13 +96,26 @@
     const initialZoom = parseInitialZoom();
     const initialCoursePanelOpen = parseInitialDrawerState();
 
+    const formatDate = (date: Date) => {
+        return date.toISOString().slice(0, 10);
+    };
+
+    const now = new Date();
+    const defaultFromDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+    const defaultToDate = formatDate(new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000));
+
+    const toUtcDate = (value: string) => new Date(`${value}T00:00:00Z`);
+
+    const fromDateInput = ref(props.fromDate ?? defaultFromDate);
+    const toDateInput = ref(props.toDate ?? defaultToDate);
+    const isRangeLoading = ref(false);
+    let rangeReloadTimer: number | null = null;
+
     const periods: Array<{ key: AssignmentPeriod; label: string }> = [
         { key: 'morning', label: 'Matin' },
         { key: 'afternoon', label: 'Apres-midi' },
         { key: 'evening', label: 'Soir' },
     ];
-
-    const toUtcDate = (value: string) => new Date(`${value}T00:00:00Z`);
 
     const buildDateKeys = (startDate: string, endDate: string) => {
         const start = toUtcDate(startDate);
@@ -117,7 +133,7 @@
         return list;
     };
 
-    const dateKeys = buildDateKeys(props.fromDate, props.toDate);
+    const dateKeys = computed(() => buildDateKeys(props.fromDate, props.toDate));
 
     const assignments = ref<PersistedAssignment[]>([...props.assignments as PersistedAssignment[]]);
     const courses = computed(() => {
@@ -132,7 +148,7 @@
     });
 
     const dates = computed(() => {
-        return dateKeys.map((iso) => {
+        return dateKeys.value.map((iso) => {
             const cursor = toUtcDate(iso);
 
             return {
@@ -298,6 +314,67 @@
         dropTargetKey.value = null;
         draggedCellDetails.value = null;
     };
+
+    const clearRangeReloadTimer = () => {
+        if (rangeReloadTimer !== null) {
+            window.clearTimeout(rangeReloadTimer);
+            rangeReloadTimer = null;
+        }
+    };
+
+    const reloadRange = (from: string, to: string) => {
+        isRangeLoading.value = true;
+
+        router.get(
+            schedule({
+                query: {
+                    from,
+                    to,
+                },
+            }).url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onFinish: () => {
+                    isRangeLoading.value = false;
+                },
+            },
+        );
+    };
+
+    const scheduleRangeReload = () => {
+        if (!fromDateInput.value || !toDateInput.value) {
+            return;
+        }
+
+        let normalizedFrom = fromDateInput.value;
+        let normalizedTo = toDateInput.value;
+
+        if (normalizedFrom > normalizedTo) {
+            [normalizedFrom, normalizedTo] = [normalizedTo, normalizedFrom];
+            fromDateInput.value = normalizedFrom;
+            toDateInput.value = normalizedTo;
+        }
+
+        if (normalizedFrom === props.fromDate && normalizedTo === props.toDate) {
+            return;
+        }
+
+        clearRangeReloadTimer();
+        rangeReloadTimer = window.setTimeout(() => {
+            reloadRange(normalizedFrom, normalizedTo);
+            rangeReloadTimer = null;
+        }, 250);
+    };
+
+    const onDateRangeChange = (payload: { from: string; to: string }) => {
+        fromDateInput.value = payload.from;
+        toDateInput.value = payload.to;
+        scheduleRangeReload();
+    };
+
 
     const getCsrfToken = () => {
         const fromMeta = document
@@ -614,10 +691,26 @@
 
     onBeforeUnmount(() => {
         clearCoursePanelTimer();
+        clearRangeReloadTimer();
         window.removeEventListener('mousemove', onWindowMouseMove);
         window.removeEventListener('mouseup', stopCoursePanelResize);
         document.body.classList.remove('select-none', 'cursor-col-resize');
     });
+
+    watch(
+        () => props.assignments,
+        (value) => {
+            assignments.value = [...value as PersistedAssignment[]];
+        },
+    );
+
+    watch(
+        () => [props.fromDate, props.toDate],
+        ([fromDate, toDate]) => {
+            fromDateInput.value = fromDate;
+            toDateInput.value = toDate;
+        },
+    );
 
     watch(zoom, () => {
         forceSync();
@@ -643,38 +736,45 @@
             <div class="flex min-h-0 min-w-0 flex-1 flex-col">
                 <div
                     class="shrink-0 border-b border-zinc-300/70 bg-white/65 px-3 py-2 dark:border-zinc-700/70 dark:bg-zinc-900/55">
-                    <div class="flex items-center justify-end gap-1.5">
-                        <div
-                            class="flex items-center overflow-hidden rounded-lg border border-zinc-200/80 bg-white/80 shadow-sm backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
-                            <button
-                                class="flex cursor-pointer items-center justify-center px-2 py-1.5 text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-300"
-                                :disabled="!canZoomOut" @click="zoomOut">
-                                <Minus class="h-3.5 w-3.5" />
-                            </button>
-                            <span
-                                class="border-x border-zinc-200/80 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:border-zinc-700/80 dark:text-zinc-500">
-                                {{ zoomLabel }}
-                            </span>
-                            <button
-                                class="flex cursor-pointer items-center justify-center px-2 py-1.5 text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-300"
-                                :disabled="!canZoomIn" @click="zoomIn">
-                                <Plus class="h-3.5 w-3.5" />
-                            </button>
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <SchedulerDateRangePicker :from-date="fromDateInput" :to-date="toDateInput"
+                                @change="onDateRangeChange" />
                         </div>
 
-                        <button
-                            class="flex cursor-pointer items-center justify-center rounded-lg border border-zinc-200/80 bg-white/80 p-1.5 text-zinc-400 shadow-sm backdrop-blur-sm transition-colors hover:border-zinc-300 hover:text-zinc-600 dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-500 dark:hover:border-zinc-600 dark:hover:text-zinc-300"
-                            @click="toggleFullscreen">
-                            <Maximize2 v-if="!isFullscreen" class="h-3.5 w-3.5" />
-                            <Minimize2 v-else class="h-3.5 w-3.5" />
-                        </button>
+                        <div class="flex items-center justify-end gap-1.5">
+                            <div
+                                class="flex items-center overflow-hidden rounded-lg border border-zinc-200/80 bg-white/80 shadow-sm backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
+                                <button
+                                    class="flex cursor-pointer items-center justify-center px-2 py-1.5 text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-300"
+                                    :disabled="!canZoomOut" @click="zoomOut">
+                                    <Minus class="h-3.5 w-3.5" />
+                                </button>
+                                <span
+                                    class="border-x border-zinc-200/80 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:border-zinc-700/80 dark:text-zinc-500">
+                                    {{ zoomLabel }}
+                                </span>
+                                <button
+                                    class="flex cursor-pointer items-center justify-center px-2 py-1.5 text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-300"
+                                    :disabled="!canZoomIn" @click="zoomIn">
+                                    <Plus class="h-3.5 w-3.5" />
+                                </button>
+                            </div>
 
-                        <button type="button"
-                            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-300/80 bg-zinc-900 px-3 py-1.5 text-xs font-semibold tracking-wide text-zinc-100 transition-colors hover:bg-zinc-800 dark:border-zinc-600/80 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                            @click="toggleCoursePanel">
-                            <BookOpen class="h-3.5 w-3.5" />
-                            {{ isCoursePanelOpen ? 'Masquer les cours' : 'Afficher les cours' }}
-                        </button>
+                            <button
+                                class="flex cursor-pointer items-center justify-center rounded-lg border border-zinc-200/80 bg-white/80 p-1.5 text-zinc-400 shadow-sm backdrop-blur-sm transition-colors hover:border-zinc-300 hover:text-zinc-600 dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-500 dark:hover:border-zinc-600 dark:hover:text-zinc-300"
+                                @click="toggleFullscreen">
+                                <Maximize2 v-if="!isFullscreen" class="h-3.5 w-3.5" />
+                                <Minimize2 v-else class="h-3.5 w-3.5" />
+                            </button>
+
+                            <button type="button"
+                                class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-300/80 bg-zinc-900 px-3 py-1.5 text-xs font-semibold tracking-wide text-zinc-100 transition-colors hover:bg-zinc-800 dark:border-zinc-600/80 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                                @click="toggleCoursePanel">
+                                <BookOpen class="h-3.5 w-3.5" />
+                                {{ isCoursePanelOpen ? 'Masquer les cours' : 'Afficher les cours' }}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -791,6 +891,16 @@
                         </div>
                     </aside>
                 </div>
+            </div>
+        </div>
+
+        <div v-if="isRangeLoading"
+            class="absolute inset-0 z-40 flex items-center justify-center bg-white/55 backdrop-blur-[1px] dark:bg-zinc-950/55">
+            <div
+                class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white/90 px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-200">
+                <span
+                    class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700 dark:border-zinc-600 dark:border-t-zinc-200" />
+                Chargement du planning...
             </div>
         </div>
 
