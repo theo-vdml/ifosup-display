@@ -899,12 +899,8 @@
                                     Faites glisser une carte vers une case vide.
                                 </p>
 
-                                <input
-                                    v-model="courseSearchQuery"
-                                    type="search"
-                                    placeholder="Rechercher code ou nom..."
-                                    class="mt-2 h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-700 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500"
-                                >
+                                <input v-model="courseSearchQuery" type="search" placeholder="Rechercher code ou nom..."
+                                    class="mt-2 h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-700 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500">
                             </div>
 
                             <div class="min-h-0 flex-1 overflow-y-auto p-2">
@@ -916,10 +912,8 @@
                                             @dragend="clearDragState()" />
                                     </div>
 
-                                    <p
-                                        v-if="!filteredCourses.length"
-                                        class="px-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400"
-                                    >
+                                    <p v-if="!filteredCourses.length"
+                                        class="px-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
                                         Aucun cours ne correspond a la recherche.
                                     </p>
                                 </div>

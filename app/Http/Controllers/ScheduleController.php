@@ -68,7 +68,8 @@ class ScheduleController extends Controller
 
         try {
             return Carbon::createFromFormat('Y-m-d', $value)->toDateString();
-        } catch (\Throwable) {
+        }
+        catch (\Throwable) {
             return $fallback;
         }
     }
