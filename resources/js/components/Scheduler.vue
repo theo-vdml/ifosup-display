@@ -103,6 +103,7 @@
     const now = new Date();
     const defaultFromDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
     const defaultToDate = formatDate(new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000));
+    const todayDateKey = formatDate(now);
 
     const toUtcDate = (value: string) => new Date(`${value}T00:00:00Z`);
 
@@ -187,6 +188,8 @@
     const buildCellKey = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return `${roomId}|${dateKey}|${period}`;
     };
+
+    const isTodayDate = (dateKey: string) => dateKey === todayDateKey;
 
     const cellDetailsMap = computed(() => {
         const map = new Map<string, CellDetails>();
@@ -814,16 +817,22 @@
                                     <div ref="headerTrackRef" class="min-w-max transform-gpu will-change-transform">
                                         <div class="flex">
                                             <div v-for="date in dates" :key="`date-${date.key}`"
-                                                class="h-12 border-r border-b border-zinc-200/70 bg-zinc-100/70 px-3 text-center text-xs font-semibold tracking-wide text-zinc-500 uppercase dark:border-zinc-700/70 dark:bg-zinc-900/60 dark:text-zinc-300 flex items-center justify-center"
+                                                class="h-12 border-r border-b px-3 text-center text-xs font-semibold tracking-wide uppercase flex items-center justify-center"
+                                                :class="isTodayDate(date.key)
+                                                    ? 'border-blue-400/80 bg-blue-100 text-blue-800 dark:border-blue-500/70 dark:bg-blue-900/35 dark:text-blue-100'
+                                                    : 'border-zinc-200/70 bg-zinc-100/70 text-zinc-500 dark:border-zinc-700/70 dark:bg-zinc-900/60 dark:text-zinc-300'"
                                                 :style="{ width: dateGroupWidth }">
-                                                {{ date.label }}
+                                                {{ isTodayDate(date.key) ? "Aujourd'hui" : date.label }}
                                             </div>
                                         </div>
 
                                         <div class="flex">
                                             <template v-for="date in dates" :key="`periods-${date.key}`">
                                                 <div v-for="period in periods" :key="`${date.key}-${period.key}`"
-                                                    class="h-10 border-r border-zinc-200/60 bg-zinc-100/55 px-3 text-center text-[11px] font-semibold tracking-wide text-zinc-400 dark:border-zinc-700/70 dark:bg-zinc-900/45 dark:text-zinc-400 flex items-center justify-center"
+                                                    class="h-10 border-r px-3 text-center text-[11px] font-semibold tracking-wide flex items-center justify-center"
+                                                    :class="isTodayDate(date.key)
+                                                        ? 'border-blue-300/75 bg-blue-100/80 text-blue-800/90 dark:border-blue-700/75 dark:bg-blue-900/25 dark:text-blue-200/95'
+                                                        : 'border-zinc-200/60 bg-zinc-100/55 text-zinc-400 dark:border-zinc-700/70 dark:bg-zinc-900/45 dark:text-zinc-400'"
                                                     :style="{ width: cellWidth }">
                                                     {{ period.label }}
                                                 </div>
@@ -867,7 +876,8 @@
 
                                                 <div v-else class="relative flex h-full items-center justify-center">
                                                     <PlaceholderPattern
-                                                        v-if="!isDropTarget(room.id, date.key, period.key)" />
+                                                        v-if="!isDropTarget(room.id, date.key, period.key)"
+                                                        :accent="isTodayDate(date.key)" />
                                                 </div>
                                             </div>
                                         </template>
