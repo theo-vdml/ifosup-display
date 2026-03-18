@@ -139,6 +139,28 @@
     const courses = computed(() => {
         return [...props.courses].sort((a, b) => a.code.localeCompare(b.code, 'fr'));
     });
+    const courseSearchQuery = ref('');
+
+    const normalizeSearchText = (value: string) => {
+        return value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLocaleLowerCase('fr')
+            .trim();
+    };
+
+    const filteredCourses = computed(() => {
+        const query = normalizeSearchText(courseSearchQuery.value);
+
+        if (!query) {
+            return courses.value;
+        }
+
+        return courses.value.filter((course) => {
+            return normalizeSearchText(course.code).includes(query)
+                || normalizeSearchText(course.name).includes(query);
+        });
+    });
 
     const dateLabelFormatter = new Intl.DateTimeFormat('fr-FR', {
         weekday: 'short',
@@ -876,16 +898,30 @@
                                 <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                                     Faites glisser une carte vers une case vide.
                                 </p>
+
+                                <input
+                                    v-model="courseSearchQuery"
+                                    type="search"
+                                    placeholder="Rechercher code ou nom..."
+                                    class="mt-2 h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-700 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500"
+                                >
                             </div>
 
                             <div class="min-h-0 flex-1 overflow-y-auto p-2">
                                 <div class="space-y-1.5">
-                                    <div v-for="course in courses" :key="`course-${course.id}`" class="h-24">
+                                    <div v-for="course in filteredCourses" :key="`course-${course.id}`" class="h-24">
                                         <SchedulerAssignmentCard :details="getCourseDetails(course)"
                                             :zoom="coursePanelCardZoom" :is-dragged="draggedCourseId === course.id"
                                             @dragstart="onCourseDragStart(course, $event)"
                                             @dragend="clearDragState()" />
                                     </div>
+
+                                    <p
+                                        v-if="!filteredCourses.length"
+                                        class="px-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400"
+                                    >
+                                        Aucun cours ne correspond a la recherche.
+                                    </p>
                                 </div>
                             </div>
                         </div>
