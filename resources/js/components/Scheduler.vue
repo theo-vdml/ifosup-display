@@ -5,7 +5,7 @@
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
     import { useSyncScroll } from '@/composables/useSyncScroll';
-    import useSchedulerView from '@/composables/useSchedulerView';
+    import useSchedulerView, { type ZoomLevel } from '@/composables/useSchedulerView';
     import SchedulerAssignmentCard from './SchedulerAssignmentCard.vue';
     import SchedulerDragPreview from './SchedulerDragPreview.vue';
 
@@ -30,6 +30,68 @@
         fromDate: '2026-03-01',
         toDate: '2026-03-30',
     });
+
+    const SCHEDULER_ZOOM_COOKIE = 'scheduler_zoom';
+    const SCHEDULER_DRAWER_COOKIE = 'scheduler_drawer_open';
+    const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
+    const readCookie = (name: string) => {
+        const prefix = `${name}=`;
+        const cookie = document.cookie
+            .split('; ')
+            .find((entry) => entry.startsWith(prefix));
+
+        if (!cookie) {
+            return null;
+        }
+
+        return decodeURIComponent(cookie.slice(prefix.length));
+    };
+
+    const writeCookie = (name: string, value: string) => {
+        document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`;
+    };
+
+    const parseInitialZoom = (): ZoomLevel => {
+        const value = readCookie(SCHEDULER_ZOOM_COOKIE);
+
+        if (value === '0.5') {
+            return 'small';
+        }
+
+        if (value === '1.5') {
+            return 'large';
+        }
+
+        if (value === '2') {
+            return 'xl';
+        }
+
+        return 'normal';
+    };
+
+    const parseInitialDrawerState = () => {
+        return readCookie(SCHEDULER_DRAWER_COOKIE) === '1';
+    };
+
+    const zoomToCookieValue = (value: ZoomLevel) => {
+        if (value === 'small') {
+            return '0.5';
+        }
+
+        if (value === 'large') {
+            return '1.5';
+        }
+
+        if (value === 'xl') {
+            return '2';
+        }
+
+        return '1';
+    };
+
+    const initialZoom = parseInitialZoom();
+    const initialCoursePanelOpen = parseInitialDrawerState();
 
     const periods: Array<{ key: AssignmentPeriod; label: string }> = [
         { key: 'morning', label: 'Matin' },
@@ -125,8 +187,8 @@
     const draggedCellDetails = ref<CellDetails | null>(null);
     const dragPreviewRef = ref<HTMLElement | null>(null);
 
-    const isCoursePanelOpen = ref(true);
-    const isCoursePanelContentVisible = ref(true);
+    const isCoursePanelOpen = ref(initialCoursePanelOpen);
+    const isCoursePanelContentVisible = ref(initialCoursePanelOpen);
     const COURSE_PANEL_MIN_WIDTH = 264;
     const COURSE_PANEL_MAX_WIDTH = 560;
     const COURSE_PANEL_TRANSITION_MS = 300;
@@ -353,7 +415,7 @@
         zoomOut,
         toggleFullscreen,
         zoomLabel,
-    } = useSchedulerView();
+    } = useSchedulerView(initialZoom);
 
     const cellWidth = computed(() => `${Math.round(BASE_CELL_WIDTH * zoomRatio.value)}px`);
     const cellHeightRatio = computed(() => 0.75 + (zoomRatio.value - 0.5) * 0.5);
@@ -559,6 +621,14 @@
 
     watch(zoom, () => {
         forceSync();
+    });
+
+    watch(zoom, (value) => {
+        writeCookie(SCHEDULER_ZOOM_COOKIE, zoomToCookieValue(value));
+    });
+
+    watch(isCoursePanelOpen, (isOpen) => {
+        writeCookie(SCHEDULER_DRAWER_COOKIE, isOpen ? '1' : '0');
     });
 </script>
 
