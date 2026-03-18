@@ -20,6 +20,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('courses', CourseController::class);
 
     Route::get('scheduler', [ScheduleController::class, 'index'])->name('schedule');
+    Route::post('scheduler/assignments', [ScheduleController::class, 'store'])
+        ->name('schedule.assignments.store');
+    Route::patch('scheduler/assignments/{assignment}', [ScheduleController::class, 'update'])
+        ->name('schedule.assignments.update');
 });
 
 

@@ -6,10 +6,9 @@
 
     const props = defineProps<{
         rooms: Room[]
-        assignments: Assignment[]
+        courses: Course[]
+        assignments: AssignmentWithRelations[]
     }>();
-
-    console.log('Schedule props:', props);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -23,7 +22,7 @@
 <template>
     <AppLayout :breadcrumbs>
         <div class="h-full p-4">
-            <Scheduler :rooms :assignments />
+            <Scheduler :rooms :courses :assignments />
         </div>
     </AppLayout>
 </template>

@@ -8,3 +8,8 @@ interface Assignment {
     room_id?: number;
     room?: Room;
 }
+
+type AssignmentWithRelations = Assignment & {
+    course: Course;
+    room?: Room;
+};
