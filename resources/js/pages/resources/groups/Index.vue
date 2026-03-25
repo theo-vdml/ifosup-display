@@ -18,10 +18,10 @@
 </script>
 
 <template>
-    <ResourceIndexLayout type="Groupes" :routes="routes" :isEmpty="groups.length === 0">
-        <template #empty-title>Il n'y a aucun groupe.</template>
-        <template #empty-action>Créer un groupe</template>
-        <template #create-action>Créer un groupe</template>
+    <ResourceIndexLayout type="Sections" :routes="routes" :isEmpty="groups.length === 0">
+        <template #empty-title>Il n'y a aucune section.</template>
+        <template #empty-action>Créer une section</template>
+        <template #create-action>Créer une section</template>
 
         <div class="grid gap-3">
             <ResourceListItem v-for="group in groups" :key="group.id" :href="actions.show(group.id).url"

@@ -23,8 +23,8 @@
 </script>
 
 <template>
-    <ResourceShowLayout :title="group.name" description="Consultez les détails du groupe et gérez ses paramètres."
-        type="Groupes" :routes="routes">
+    <ResourceShowLayout :title="group.name" description="Consultez les détails de la section et gérez ses paramètres."
+        type="Sections" :routes="routes">
         <div class="grid gap-6">
             <section
                 class="overflow-hidden rounded-2xl border border-sidebar-border/60 bg-linear-to-br from-zinc-100 via-card to-zinc-200/60 dark:from-zinc-900 dark:via-zinc-900/90 dark:to-zinc-800/50">
@@ -63,7 +63,7 @@
                     class="rounded-xl border border-dashed border-sidebar-border/70 bg-zinc-50/50 p-6 text-sm text-muted-foreground dark:bg-zinc-900/30">
                     <div class="flex items-center gap-2">
                         <Layers3Icon class="h-4 w-4" />
-                        <p>Aucun cours associé à ce groupe pour le moment.</p>
+                        <p>Aucun cours associé à cette section pour le moment.</p>
                     </div>
                 </div>
             </section>

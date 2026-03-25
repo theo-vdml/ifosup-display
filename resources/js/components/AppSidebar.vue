@@ -38,7 +38,7 @@
             icon: DoorOpen,
         },
         {
-            title: 'Groupes',
+            title: 'Sections',
             href: groups.index(),
             icon: UsersRound,
         },
