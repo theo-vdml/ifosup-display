@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\TeacherController;
@@ -14,6 +15,7 @@ Route::inertia('/', 'Welcome', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('recurrences', [RecurrenceController::class, 'index'])->name('recurrences');
     Route::resource('teachers', TeacherController::class);
     Route::resource('rooms', RoomController::class);
     Route::resource('groups', GroupController::class);
