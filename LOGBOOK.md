@@ -4,6 +4,11 @@
 
 Ce document reprend, par date, les étapes réalisées sur le projet.
 
+Totaux:
+
+- présentiel : 28h
+- distancuel : 16h
+
 ---
 
 ## 2 mars 2026
@@ -104,3 +109,28 @@ _Distanciel, 8h_
 - Architecture de données : Conception du modèle de données et création des migrations nécessaires pour la gestion des Assignments
 - Intégration Backend : Mise à jour du Scheduler pour assurer le passage de données dynamiques issues de la base de données via les props.
 - Environnement de test : Développement de factories et de seeders pour générer des jeux de données de test réalistes et faciliter les phases de recette.
+
+---
+
+## 17 mars 2026
+
+_Distanciel, 4h_
+
+### Développement du composant Planning
+
+- Répartition des tâches entre plusieurs composants pour éviter la répétition de code
+- Préparation eux opération CRUD (ajouter un cours, déplacer un cours, ...)
+
+---
+
+## 18 mars 2026
+
+_Présentiel, 8h_
+
+### Développement du composant Planning
+
+- Ajout de la possibilité d'ajouter un cours dans le planning
+- Possibilité de chercher un cours dans la bibliothèque de cours
+- Synchornisation des ajouts/déplacement de cours avec la base de données
+- Ajout d'un DateRangePicker pour définir la periode a afficher dans le planning
+- Utilisation de cookies pour garder en mémoire les préférences (zoom, ...) de l'utilisateur sur le planning

@@ -18,7 +18,6 @@ class GroupFactory extends Factory
     {
         return [
             'name' => strtoupper(fake()->bothify('G-##??')),
-            'size' => fake()->numberBetween(10, 35),
         ];
     }
 }

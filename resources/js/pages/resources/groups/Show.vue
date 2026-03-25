@@ -41,11 +41,6 @@
                             </span>
                             <span
                                 class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
-                                <UsersRoundIcon class="h-3 w-3 mt-px" />
-                                {{ group.size }} {{ group.size > 1 ? 'élèves' : 'élève' }}
-                            </span>
-                            <span
-                                class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
                                 <BookOpenIcon class="h-3 w-3 mt-px" />
                                 {{ courses.length }} cours
                             </span>

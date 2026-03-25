@@ -26,9 +26,6 @@
         <div class="grid gap-3">
             <ResourceListItem v-for="group in groups" :key="group.id" :href="actions.show(group.id).url"
                 :title="group.name" :image="getAvatarUrl(group.name)">
-                <ResourceListItemData :icon="UsersRoundIcon">
-                    {{ group.size }} {{ group.size > 1 ? 'élèves' : 'élève' }}
-                </ResourceListItemData>
             </ResourceListItem>
         </div>
     </ResourceIndexLayout>
