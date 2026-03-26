@@ -16,6 +16,9 @@ Route::inertia('/', 'Welcome', [
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::get('recurrences', [RecurrenceController::class, 'index'])->name('recurrences');
+    Route::post('recurrences', [RecurrenceController::class, 'store'])->name('recurrences.store');
+    Route::patch('recurrences/{recurrence}', [RecurrenceController::class, 'update'])->name('recurrences.update');
+    Route::delete('recurrences/{recurrence}', [RecurrenceController::class, 'destroy'])->name('recurrences.destroy');
     Route::resource('teachers', TeacherController::class);
     Route::resource('rooms', RoomController::class);
     Route::resource('groups', GroupController::class);

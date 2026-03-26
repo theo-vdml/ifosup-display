@@ -9,7 +9,6 @@ class Assignment extends Model
 {
     use HasFactory;
 
-    // Eager load course and room relationships by default
     protected $with = ['course', 'room'];
 
     protected $fillable = [
@@ -17,6 +16,8 @@ class Assignment extends Model
         'room_id',
         'date',
         'period',
+        'recurring_assignment_id',
+        'is_detached',
     ];
 
     protected $casts = [
@@ -31,5 +32,10 @@ class Assignment extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function recurringAssignment()
+    {
+        return $this->belongsTo(RecurringAssignment::class);
     }
 }

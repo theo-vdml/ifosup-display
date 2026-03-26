@@ -11,22 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('assignments', function (Blueprint $table) {
+        Schema::create('recurring_assignments', function (Blueprint $table) {
             $table->id();
-
             $table->timestamps();
 
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('room_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('room_id')->constrained()->cascadeOnDelete();
 
-            $table->date('date');
-
+            $table->integer('day_of_week'); // 1 (lundi) à 7 (dimanche)
             $table->enum('period', ['morning', 'afternoon', 'evening']);
 
-            $table->foreignId('recurring_assignment_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->boolean('is_detached')->default(false);
-
-            $table->index(['date', 'room_id']);
+            $table->date('start_date');
+            $table->date('end_date');
         });
     }
 
@@ -35,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('assignments');
+        Schema::dropIfExists('recurring_assignments');
     }
 };

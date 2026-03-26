@@ -3,24 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ScheduleIndexRequest;
+use App\Http\Requests\StoreScheduleAssignmentRequest;
+use App\Http\Requests\UpdateScheduleAssignmentRequest;
 use App\Models\Assignment;
 use App\Models\Course;
 use App\Models\Room;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ScheduleController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(ScheduleIndexRequest $request): Response
     {
-        $validated = $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $validated = $request->validated();
 
         $defaultFromDate = now()->subDay()->toDateString();
         $defaultToDate = now()->addDays(30)->toDateString();
@@ -68,20 +67,14 @@ class ScheduleController extends Controller
 
         try {
             return Carbon::createFromFormat('Y-m-d', $value)->toDateString();
-        }
-        catch (\Throwable) {
+        } catch (\Throwable) {
             return $fallback;
         }
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreScheduleAssignmentRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'course_id' => ['required', 'exists:courses,id'],
-            'room_id' => ['required', 'exists:rooms,id'],
-            'date' => ['required', 'date_format:Y-m-d'],
-            'period' => ['required', 'in:morning,afternoon,evening'],
-        ]);
+        $data = $request->validated();
 
         if ($this->slotIsOccupied((int) $data['room_id'], (string) $data['date'], (string) $data['period'])) {
             return response()->json([
@@ -96,13 +89,9 @@ class ScheduleController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Assignment $assignment): JsonResponse
+    public function update(UpdateScheduleAssignmentRequest $request, Assignment $assignment): JsonResponse
     {
-        $data = $request->validate([
-            'room_id' => ['required', 'exists:rooms,id'],
-            'date' => ['required', 'date_format:Y-m-d'],
-            'period' => ['required', 'in:morning,afternoon,evening'],
-        ]);
+        $data = $request->validated();
 
         if ($this->slotIsOccupied(
             (int) $data['room_id'],
