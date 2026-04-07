@@ -21,8 +21,8 @@ return new class extends Migration
             $table->integer('day_of_week'); // 1 (lundi) à 7 (dimanche)
             $table->enum('period', ['morning', 'afternoon', 'evening']);
 
-            $table->date('start_date');
-            $table->date('end_date');
+            $table->string('start_week', 8);
+            $table->string('end_week', 8);
         });
     }
 

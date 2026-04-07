@@ -24,8 +24,8 @@ interface RecurringAssignment {
     room?: Room;
     period: AssignmentPeriod;
     day_of_week: number;
-    start_date: string;
-    end_date: string;
+    start_week: string;
+    end_week: string;
 }
 
 type RecurringAssignmentWithRelations = RecurringAssignment & {

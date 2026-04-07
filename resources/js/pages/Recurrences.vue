@@ -4,7 +4,7 @@
     import { PencilLine, Plus, Trash2 } from 'lucide-vue-next';
 
     import Combobox from '@/components/Combobox.vue';
-    import SchedulerDateRangePicker from '@/components/SchedulerDateRangePicker.vue';
+    import SchedulerWeekPicker from '@/components/SchedulerWeekPicker.vue';
     import { Badge } from '@/components/ui/badge';
     import Heading from '@/components/Heading.vue';
     import { Button } from '@/components/ui/button';
@@ -19,8 +19,8 @@
     type RecurrenceDraft = {
         day: DayKey;
         period: AssignmentPeriod;
-        startDate: string;
-        endDate: string;
+        startWeek: string;
+        endWeek: string;
         room: Room | null;
         course: Course | null;
     };
@@ -29,8 +29,8 @@
         id: number;
         day: DayKey;
         period: AssignmentPeriod;
-        startDate: string;
-        endDate: string;
+        startWeek: string;
+        endWeek: string;
         room: Room;
         course: Course;
     };
@@ -74,6 +74,55 @@
     const toIsoUtcDate = (isoDate: string) => new Date(`${isoDate}T00:00:00Z`);
     const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
 
+    const weekRegex = /^(\d{4})-W(0[1-9]|[1-4]\d|5[0-3])$/;
+
+    const parseIsoWeek = (value: unknown) => {
+        if (typeof value !== 'string') {
+            return null;
+        }
+
+        const match = value.match(weekRegex);
+
+        if (!match) {
+            return null;
+        }
+
+        return {
+            year: Number(match[1]),
+            week: Number(match[2]),
+        };
+    };
+
+    const isoWeekToMondayDate = (isoWeek: string) => {
+        const parsed = parseIsoWeek(isoWeek);
+
+        if (!parsed) {
+            return null;
+        }
+
+        const jan4 = new Date(Date.UTC(parsed.year, 0, 4));
+        const jan4IsoDay = jan4.getUTCDay() || 7;
+        const weekOneMonday = new Date(jan4);
+        weekOneMonday.setUTCDate(jan4.getUTCDate() - (jan4IsoDay - 1));
+
+        const monday = new Date(weekOneMonday);
+        monday.setUTCDate(weekOneMonday.getUTCDate() + (parsed.week - 1) * 7);
+
+        return monday;
+    };
+
+    const isoWeekFromDate = (date: Date) => {
+        const normalized = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+        const day = normalized.getUTCDay() || 7;
+        normalized.setUTCDate(normalized.getUTCDate() + 4 - day);
+
+        const isoYear = normalized.getUTCFullYear();
+        const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+        const week = Math.ceil((((normalized.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+
+        return `${isoYear}-W${String(week).padStart(2, '0')}`;
+    };
+
     const dayLabel = (day: DayKey) => {
         return days.find((item) => item.key === day)?.label ?? day;
     };
@@ -89,20 +138,25 @@
         return FRENCH_DATE_FORMATTER.format(toIsoUtcDate(isoDate));
     };
 
-    const addDays = (isoDate: string, daysToAdd: number) => {
-        const date = toIsoUtcDate(isoDate);
-        date.setUTCDate(date.getUTCDate() + daysToAdd);
-        return toIsoDate(date);
+    const addWeeks = (isoWeek: string, weeksToAdd: number) => {
+        const monday = isoWeekToMondayDate(isoWeek);
+
+        if (!monday) {
+            return isoWeek;
+        }
+
+        monday.setUTCDate(monday.getUTCDate() + (weeksToAdd * 7));
+        return isoWeekFromDate(monday);
     };
 
     const createDraft = (): RecurrenceDraft => {
-        const startDate = toIsoDate(new Date());
+        const startWeek = isoWeekFromDate(new Date());
 
         return {
             day: 'monday',
             period: 'morning',
-            startDate,
-            endDate: addDays(startDate, 112),
+            startWeek,
+            endWeek: addWeeks(startWeek, 16),
             room: props.rooms[0] ?? null,
             course: props.courses[0] ?? null,
         };
@@ -141,13 +195,13 @@
 
     const rules = computed<RecurrenceRule[]>(() => {
         return props.recurringAssignments
-            .filter((item) => item.course && item.room)
+            .filter((item) => item.course && item.room && parseIsoWeek(item.start_week) && parseIsoWeek(item.end_week))
             .map((item) => ({
                 id: item.id,
                 day: dayNumberToKey[item.day_of_week] ?? 'monday',
                 period: item.period,
-                startDate: item.start_date,
-                endDate: item.end_date,
+                startWeek: item.start_week as string,
+                endWeek: item.end_week as string,
                 room: item.room,
                 course: item.course,
             }));
@@ -169,16 +223,27 @@
         errorMessage.value = '';
         draft.day = rule.day;
         draft.period = rule.period;
-        draft.startDate = rule.startDate;
-        draft.endDate = rule.endDate;
+        draft.startWeek = rule.startWeek;
+        draft.endWeek = rule.endWeek;
         draft.room = props.rooms.find((room) => room.id === rule.room.id) ?? rule.room;
         draft.course = props.courses.find((course) => course.id === rule.course.id) ?? rule.course;
         drawerOpen.value = true;
     };
 
-    const onDateRangeChange = (payload: { from: string; to: string }) => {
-        draft.startDate = payload.from;
-        draft.endDate = payload.to;
+    const onStartWeekChange = (value: string) => {
+        draft.startWeek = value;
+
+        if (draft.endWeek < draft.startWeek) {
+            draft.endWeek = draft.startWeek;
+        }
+    };
+
+    const onEndWeekChange = (value: string) => {
+        draft.endWeek = value;
+
+        if (draft.startWeek > draft.endWeek) {
+            draft.startWeek = draft.endWeek;
+        }
     };
 
     const deleteRule = (id: number) => {
@@ -194,12 +259,17 @@
             return false;
         }
 
-        if (!draft.startDate || !draft.endDate) {
+        if (!draft.startWeek || !draft.endWeek) {
             errorMessage.value = 'Les dates de debut et de fin sont obligatoires.';
             return false;
         }
 
-        if (draft.startDate > draft.endDate) {
+        if (!weekRegex.test(draft.startWeek) || !weekRegex.test(draft.endWeek)) {
+            errorMessage.value = 'Le format de semaine doit etre du type 2026-W13.';
+            return false;
+        }
+
+        if (draft.startWeek > draft.endWeek) {
             errorMessage.value = 'La date de debut doit etre avant la date de fin.';
             return false;
         }
@@ -221,8 +291,8 @@
         const payload = {
             day_of_week: dayKeyToNumber[draft.day],
             period: draft.period,
-            start_date: draft.startDate,
-            end_date: draft.endDate,
+            start_week: draft.startWeek,
+            end_week: draft.endWeek,
             room_id: (draft.room as Room).id,
             course_id: (draft.course as Course).id,
         };
@@ -258,12 +328,12 @@
     };
 
     const compareRulesByStartDate = (a: RecurrenceRule, b: RecurrenceRule) => {
-        if (a.startDate !== b.startDate) {
-            return a.startDate.localeCompare(b.startDate);
+        if (a.startWeek !== b.startWeek) {
+            return a.startWeek.localeCompare(b.startWeek);
         }
 
-        if (a.endDate !== b.endDate) {
-            return a.endDate.localeCompare(b.endDate);
+        if (a.endWeek !== b.endWeek) {
+            return a.endWeek.localeCompare(b.endWeek);
         }
 
         return a.course.code.localeCompare(b.course.code, 'fr');
@@ -277,15 +347,17 @@
         }
 
         return rules.value.filter((rule) => {
+            const range = getRangeBoundaryDates(rule);
+
             const haystack = normalize([
                 dayLabel(rule.day),
                 periodLabel(rule.period),
                 rule.course.code,
                 rule.course.name,
                 rule.room.name,
-                rule.startDate,
-                rule.endDate,
-                `${formatFrenchDate(rule.startDate)} ${formatFrenchDate(rule.endDate)}`,
+                rule.startWeek,
+                rule.endWeek,
+                `${formatFrenchDate(range.from)} ${formatFrenchDate(range.to)}`,
             ].join(' '));
 
             return haystack.includes(query);
@@ -337,42 +409,49 @@
         return counters;
     });
 
-    const countDayOccurrences = (day: DayKey, startDate: string, endDate: string) => {
-        const dayInfo = days.find((item) => item.key === day);
+    const getRangeBoundaryDates = (rule: RecurrenceRule) => {
+        const fromMonday = isoWeekToMondayDate(rule.startWeek);
+        const toMonday = isoWeekToMondayDate(rule.endWeek);
 
-        if (!dayInfo) {
+        if (!fromMonday || !toMonday) {
+            const fallback = toIsoDate(new Date());
+            return { from: fallback, to: fallback };
+        }
+
+        const toSunday = new Date(toMonday);
+        toSunday.setUTCDate(toSunday.getUTCDate() + 6);
+
+        return {
+            from: toIsoDate(fromMonday),
+            to: toIsoDate(toSunday),
+        };
+    };
+
+    const countDayOccurrences = (rule: RecurrenceRule) => {
+        const startMonday = isoWeekToMondayDate(rule.startWeek);
+        const endMonday = isoWeekToMondayDate(rule.endWeek);
+
+        if (!startMonday || !endMonday || startMonday > endMonday) {
             return 0;
         }
 
-        const start = toIsoUtcDate(startDate);
-        const end = toIsoUtcDate(endDate);
-
-        if (start.getTime() > end.getTime()) {
-            return 0;
-        }
-
-        const first = new Date(start);
-        const delta = (dayInfo.jsDay - first.getUTCDay() + 7) % 7;
-        first.setUTCDate(first.getUTCDate() + delta);
-
-        if (first.getTime() > end.getTime()) {
-            return 0;
-        }
-
-        const diffInDays = Math.floor((end.getTime() - first.getTime()) / 86400000);
+        const diffInDays = Math.floor((endMonday.getTime() - startMonday.getTime()) / 86400000);
         return Math.floor(diffInDays / 7) + 1;
     };
 
     const formatRuleRange = (rule: RecurrenceRule) => {
+        const boundaries = getRangeBoundaryDates(rule);
+
         return {
-            from: formatFrenchDate(rule.startDate),
-            to: formatFrenchDate(rule.endDate),
-            occurrences: countDayOccurrences(rule.day, rule.startDate, rule.endDate),
+            from: formatFrenchDate(boundaries.from),
+            to: formatFrenchDate(boundaries.to),
+            startWeek: rule.startWeek,
+            endWeek: rule.endWeek,
         };
     };
 
     const formatRuleOccurrencesLabel = (rule: RecurrenceRule) => {
-        const occurrences = countDayOccurrences(rule.day, rule.startDate, rule.endDate);
+        const occurrences = countDayOccurrences(rule);
         return `${occurrences} occurrence(s) ${dayLabel(rule.day).toLocaleLowerCase('fr')}`;
     };
 
@@ -582,10 +661,17 @@
                         </div>
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label>Plage de dates</Label>
-                        <SchedulerDateRangePicker :from-date="draft.startDate" :to-date="draft.endDate"
-                            @change="onDateRangeChange" />
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label>Semaine de debut</Label>
+                            <SchedulerWeekPicker :model-value="draft.startWeek"
+                                @update:model-value="onStartWeekChange" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label>Semaine de fin</Label>
+                            <SchedulerWeekPicker :model-value="draft.endWeek" @update:model-value="onEndWeekChange" />
+                        </div>
                     </div>
 
                     <div class="grid gap-2">

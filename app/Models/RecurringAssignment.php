@@ -11,8 +11,8 @@ class RecurringAssignment extends Model
         'room_id',
         'day_of_week',
         'period',
-        'start_date',
-        'end_date',
+        'start_week',
+        'end_week',
     ];
 
     public function course()
