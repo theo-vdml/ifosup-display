@@ -23,7 +23,6 @@ class StoreGroupRequest extends FormRequest
     {
         return [
             "name" => "required|string|max:255",
-            "size" => "required|integer|min:1",
         ];
     }
 
@@ -38,9 +37,6 @@ class StoreGroupRequest extends FormRequest
             "name.required" => "Le nom est requis.",
             "name.string" => "Le nom doit être une chaîne de caractères.",
             "name.max" => "Le nom ne peut pas dépasser 255 caractères.",
-            "size.required" => "La taille est requise.",
-            "size.integer" => "La taille doit être un entier.",
-            "size.min" => "La taille doit être au moins de 1.",
         ];
     }
 }

@@ -57,7 +57,7 @@ class CourseController extends Controller
      */
     public function show(Course $course)
     {
-        $course->load(['teacher:id,name', 'groups:id,name,size']);
+        $course->load(['teacher:id,name', 'groups:id,name']);
 
         return Inertia::render('resources/courses/Show', [
             'course' => $course,

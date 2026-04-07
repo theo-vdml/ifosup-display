@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { useId } from 'vue';
 
+interface PlaceholderPatternProps {
+    accent?: boolean
+}
+
+const props = withDefaults(defineProps<PlaceholderPatternProps>(), {
+    accent: false,
+});
+
 const patternId = `pattern-${useId()}`;
 </script>
 
 <template>
     <svg
-        class="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20"
+        class="absolute inset-0 size-full"
+        :class="props.accent
+            ? 'stroke-blue-900/60 dark:stroke-blue-300/38'
+            : 'stroke-neutral-900/20 dark:stroke-neutral-100/20'"
         fill="none"
     >
         <defs>

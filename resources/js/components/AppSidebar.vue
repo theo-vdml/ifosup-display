@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { Link } from '@inertiajs/vue3';
-    import { BookOpen, FolderGit2, LayoutGrid, GraduationCap, DoorOpen, UsersRound } from 'lucide-vue-next';
+    import { BookOpen, FolderGit2, LayoutGrid, GraduationCap, DoorOpen, UsersRound, CalendarRange, Repeat2 } from 'lucide-vue-next';
     import AppLogo from '@/components/AppLogo.vue';
     import NavFooter from '@/components/NavFooter.vue';
     import NavMain from '@/components/NavMain.vue';
@@ -14,7 +14,7 @@
         SidebarMenuButton,
         SidebarMenuItem,
     } from '@/components/ui/sidebar';
-    import { dashboard } from '@/routes';
+    import { dashboard, schedule } from '@/routes';
     import type { NavItem } from '@/types';
     import teachers from '@/routes/teachers';
     import rooms from '@/routes/rooms';
@@ -38,7 +38,7 @@
             icon: DoorOpen,
         },
         {
-            title: 'Groupes',
+            title: 'Sections',
             href: groups.index(),
             icon: UsersRound,
         },
@@ -46,6 +46,16 @@
             title: 'Cours',
             href: courses.index(),
             icon: BookOpen
+        },
+        {
+            title: 'Planning',
+            href: schedule(),
+            icon: CalendarRange
+        },
+        {
+            title: 'Recurrences',
+            href: '/recurrences',
+            icon: Repeat2,
         }
     ];
 

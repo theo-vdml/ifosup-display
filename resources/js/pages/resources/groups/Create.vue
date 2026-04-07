@@ -12,21 +12,14 @@
 <template>
 
 
-    <ResourceFormLayout title="Nouveau Groupe" description="Ajoutez un nouveau groupe dans la base de données."
-        type="Groupes" :routes="routes" :form-action="actions.store.form()">
+    <ResourceFormLayout title="Nouvelle Section" description="Ajoutez une nouvelle section dans la base de données."
+        type="Sections" :routes="routes" :form-action="actions.store.form()">
         <template #default="{ errors, processing }">
             <div class="grid gap-2">
-                <Label for="name">Nom du groupe</Label>
+                <Label for="name">Nom de la section</Label>
                 <Input id="name" class="mt-1 block w-full" name="name" required autocomplete="name"
                     placeholder="Nom complet" />
                 <InputError class="mt-2" :message="errors.name" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="size">Nombre d'étudiants</Label>
-                <Input id="size" class="mt-1 block w-full" name="size" required type="number" min="1"
-                    placeholder="Nombre d'étudiants" />
-                <InputError class="mt-2" :message="errors.size" />
             </div>
         </template>
     </ResourceFormLayout>
