@@ -2,13 +2,14 @@
     <div class="h-screen w-screen bg-black overflow-hidden relative">
 
         <transition name="fade" mode="out-in">
-            <component :is="components[currentSlide.type]" :key="currentIndex" :data="currentSlide.data" />
+            <component :is="components[currentSlide.type]" :key="currentIndex" :data="currentSlide.data"
+                @next="goToNextSlide" />
         </transition>
     </div>
 </template>
 
 <script setup>
-    import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
+    import { ref, computed, defineAsyncComponent } from 'vue';
 
     const components = {
         image: defineAsyncComponent(() => import('./slides/ImageSlide.vue')),
@@ -16,23 +17,17 @@
     };
 
     const slides = ref([
-        { type: 'image', data: { src: 'https://picsum.photos/1920/1080?sig=1' } },
-        { type: 'image', data: { src: 'https://picsum.photos/1920/1080?sig=5' } },
-        { type: 'video', data: { src: 'https://www.w3schools.com/html/mov_bbb.mp4' } },
+        { type: 'image', data: { src: 'https://picsum.photos/1920/1080?sig=1', duration: 3000 } },
+        { type: 'image', data: { src: 'https://picsum.photos/1920/1080?sig=5', duration: 5000 } },
+        { type: 'video', data: { src: 'https://lorem.video/1280x720' } },
     ]);
 
     const currentIndex = ref(0);
     const currentSlide = computed(() => slides.value[currentIndex.value]);
 
-    let timer = null;
-
-    onMounted(() => {
-        timer = setInterval(() => {
-            currentIndex.value = (currentIndex.value + 1) % slides.value.length;
-        }, 10000);
-    });
-
-    onUnmounted(() => clearInterval(timer));
+    function goToNextSlide() {
+        currentIndex.value = (currentIndex.value + 1) % slides.value.length;
+    }
 </script>
 
 <style scoped>

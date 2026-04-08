@@ -5,5 +5,22 @@
 </template>
 
 <script setup>
-    defineProps({ data: Object });
+    import { onMounted, onUnmounted } from 'vue';
+
+    const props = defineProps({ data: Object });
+    const emit = defineEmits(['next']);
+
+    let timer = null;
+
+    onMounted(() => {
+        timer = window.setTimeout(() => {
+            emit('next');
+        }, props.data.duration);
+    });
+
+    onUnmounted(() => {
+        if (timer !== null) {
+            window.clearTimeout(timer);
+        }
+    });
 </script>
