@@ -1,14 +1,7 @@
 <template>
     <div class="w-full h-full bg-black">
-        <video
-            ref="videoPlayer"
-            class="w-full h-full object-cover"
-            autoplay
-            muted
-            playsinline
-            :src="data.src"
-            @ended="emit('next')"
-        ></video>
+        <video ref="videoPlayer" class="w-full h-full object-cover" autoplay muted playsinline :src="data.src"
+            @ended="emit('next')"></video>
     </div>
 </template>
 

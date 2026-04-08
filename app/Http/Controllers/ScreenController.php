@@ -47,7 +47,7 @@ class ScreenController extends Controller
         return Assignment::query()
             ->where('date', $now->toDateString())
             ->whereIn('period', $periodsOfInterest[$currentPeriodKey]) // On utilise la clé ici
-            ->with(['course', 'room'])
+            ->with(['course.groups', 'course.teacher', 'room'])
             ->get();
     }
 }
