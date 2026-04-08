@@ -5,6 +5,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\ScreenController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -12,6 +13,9 @@ use Laravel\Fortify\Features;
 Route::inertia('/', 'Welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('home');
+
+Route::get('screen', [ScreenController::class, 'index'])->name('screen');
+Route::get('screen/data', [ScreenController::class, 'data'])->name('screen.data');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
