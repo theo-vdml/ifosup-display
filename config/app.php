@@ -67,6 +67,8 @@ return [
 
     'timezone' => 'UTC',
 
+    'screen_timezone' => env('APP_SCREEN_TIMEZONE', 'Europe/Brussels'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
