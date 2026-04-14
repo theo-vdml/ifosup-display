@@ -1,8 +1,14 @@
 <script setup>
-    import { onMounted, onUnmounted } from 'vue';
+    import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
     const props = defineProps({ data: Object });
     const emit = defineEmits(['next']);
+
+    const minimumDuration = computed(() => props.data?.minimumDuration ?? props.data?.duration ?? 5000);
+    const isReady = computed(() => props.data?.isReady ?? true);
+    const minimumDurationElapsed = ref(false);
+
+    let hasEmitted = false;
 
     const dateLabel = new Date().toLocaleDateString('fr-BE', {
         weekday: 'long',
@@ -13,8 +19,24 @@
 
     let timer = null;
 
+    function emitNextIfReady() {
+        if (hasEmitted || !minimumDurationElapsed.value || !isReady.value) {
+            return;
+        }
+
+        hasEmitted = true;
+        emit('next');
+    }
+
     onMounted(() => {
-        timer = window.setTimeout(() => emit('next'), props.data.duration);
+        timer = window.setTimeout(() => {
+            minimumDurationElapsed.value = true;
+            emitNextIfReady();
+        }, minimumDuration.value);
+    });
+
+    watch(isReady, () => {
+        emitNextIfReady();
     });
 
     onUnmounted(() => {

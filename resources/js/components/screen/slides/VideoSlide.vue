@@ -1,7 +1,7 @@
 <template>
     <div class="w-full h-full bg-black">
         <video ref="videoPlayer" class="w-full h-full object-cover" autoplay muted playsinline :src="data.src"
-            @ended="emit('next')"></video>
+            @ended="emit('next')" @error="emit('next')"></video>
     </div>
 </template>
 
@@ -16,7 +16,7 @@
     onMounted(() => {
         if (videoPlayer.value) {
             videoPlayer.value.currentTime = 0;
-            videoPlayer.value.play();
+            videoPlayer.value.play().catch(() => emit('next'));
         }
     });
 </script>

@@ -13,12 +13,18 @@
         year: 'numeric',
     });
 
-    const periodLabel = computed(() => {
-        const h = now.getHours();
-        if (h < 12) return 'Cours du matin';
-        if (h < 17) return "Cours de l'après-midi";
-        return 'Cours du soir';
-    });
+    const timeLabel = ref('');
+
+    function updateTimeLabel() {
+        timeLabel.value = new Date().toLocaleTimeString('fr-BE', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+        });
+    }
+
+    const title = computed(() => props.data?.title ?? 'Planning des cours');
 
     // Auto-scroll via transform
     const outerContainer = ref(null);
@@ -37,6 +43,7 @@
     let phase = 'initial-wait';
     let phaseFrames = INITIAL_PAUSE_FRAMES;
     let animationId = null;
+    let timeIntervalId = null;
 
     function animate() {
         const outer = outerContainer.value;
@@ -69,11 +76,14 @@
     }
 
     onMounted(() => {
+        updateTimeLabel();
+        timeIntervalId = window.setInterval(updateTimeLabel, 1000);
         animationId = requestAnimationFrame(animate);
     });
 
     onUnmounted(() => {
         if (animationId !== null) cancelAnimationFrame(animationId);
+        if (timeIntervalId !== null) clearInterval(timeIntervalId);
     });
 </script>
 
@@ -86,10 +96,13 @@
                 <img src="/IFO_Gimmick_SUPERIEUR.png" class="size-16">
                 <div>
                     <p class="text-[#f2ae35] text-base font-semibold uppercase tracking-[0.3em] mb-0.5">Locaux</p>
-                    <h1 class="text-white text-5xl font-black leading-tight uppercase">Cours du soir</h1>
+                    <h1 class="text-white text-5xl font-black leading-tight uppercase">{{ title }}</h1>
                 </div>
             </div>
-            <p class="text-[#f2ae35] text-lg font-bold uppercase tracking-widest">{{ dateLabel }}</p>
+            <div class="text-right">
+                <p class="text-[#f2ae35] text-lg font-bold uppercase tracking-widest">{{ dateLabel }}</p>
+                <p class="text-white text-3xl font-black tracking-[0.2em] mt-2">{{ timeLabel }}</p>
+            </div>
         </div>
 
         <!-- Column headers -->
@@ -119,7 +132,7 @@
 
                         <!-- Teacher -->
                         <span class="text-gray-700 text-xl font-semibold truncate">{{ row.course?.teacher?.name ?? '—'
-                        }}</span>
+                            }}</span>
 
                         <!-- Groups -->
                         <span class="text-gray-700 text-xl font-semibold truncate">
