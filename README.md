@@ -34,3 +34,5 @@ pnpm approve-builds
 - Copier le fichier `.env.example` en `.env`
 - Configurer la base de données dans le `.env`
 - Lancer : `php artisan key:generate` et `php artisan migrate`
+
+support@ifosup.wavre.be
