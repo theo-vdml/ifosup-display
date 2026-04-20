@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { router } from '@inertiajs/vue3';
     import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-    import { BookOpen, DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
+    import { BookOpen, CalendarDays, DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
@@ -111,6 +111,12 @@
     const toDateInput = ref(props.toDate ?? defaultToDate);
     const isRangeLoading = ref(false);
     let rangeReloadTimer: number | null = null;
+
+    const focusToday = () => {
+        fromDateInput.value = todayDateKey;
+        toDateInput.value = todayDateKey;
+        reloadRange(todayDateKey, todayDateKey);
+    };
 
     const periods: Array<{ key: AssignmentPeriod; label: string }> = [
         { key: 'morning', label: 'Matin' },
@@ -356,7 +362,7 @@
                     from,
                     to,
                 },
-            }).url,
+            }),
             {},
             {
                 preserveState: true,
@@ -524,6 +530,32 @@
     const cellHeight = computed(() => `${Math.round(BASE_CELL_HEIGHT * cellHeightRatio.value)}px`);
     const dateGroupWidth = computed(() => `${Math.round(BASE_CELL_WIDTH * zoomRatio.value) * periods.length}px`);
     const dragPreviewWidth = computed(() => Math.min(Math.round(BASE_CELL_WIDTH * zoomRatio.value) - 8, 280));
+
+    const preserveScrollDuring = (action: () => void) => {
+        if (!gridScrollerRef.value) {
+            action();
+            return;
+        }
+
+        const scroller = gridScrollerRef.value;
+        const { scrollLeft, scrollTop, scrollWidth, scrollHeight, clientWidth, clientHeight } = scroller;
+
+        const relativeX = (scrollLeft + clientWidth / 2) / scrollWidth;
+        const relativeY = (scrollTop + clientHeight / 2) / scrollHeight;
+
+        action();
+
+        nextTick(() => {
+            if (!gridScrollerRef.value) return;
+            const newScroller = gridScrollerRef.value;
+            newScroller.scrollLeft = relativeX * newScroller.scrollWidth - clientWidth / 2;
+            newScroller.scrollTop = relativeY * newScroller.scrollHeight - clientHeight / 2;
+            forceSync();
+        });
+    };
+
+    const handleZoomIn = () => preserveScrollDuring(() => zoomIn());
+    const handleZoomOut = () => preserveScrollDuring(() => zoomOut());
 
     const onAssignmentDragStart = async (
         roomId: number,
@@ -765,6 +797,13 @@
                         <div class="flex items-center gap-2">
                             <SchedulerDateRangePicker :from-date="fromDateInput" :to-date="toDateInput"
                                 @change="onDateRangeChange" />
+
+                            <button type="button"
+                                class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/80 px-2.5 text-xs font-semibold text-zinc-600 shadow-sm backdrop-blur-sm transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
+                                @click="focusToday">
+                                <CalendarDays class="h-3.5 w-3.5" />
+                                Aujourd'hui
+                            </button>
                         </div>
 
                         <div class="flex items-center justify-end gap-1.5">
@@ -772,7 +811,7 @@
                                 class="flex items-center overflow-hidden rounded-lg border border-zinc-200/80 bg-white/80 shadow-sm backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/80">
                                 <button
                                     class="flex cursor-pointer items-center justify-center px-2 py-1.5 text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-300"
-                                    :disabled="!canZoomOut" @click="zoomOut">
+                                    :disabled="!canZoomOut" @click="handleZoomOut">
                                     <Minus class="h-3.5 w-3.5" />
                                 </button>
                                 <span
@@ -781,7 +820,7 @@
                                 </span>
                                 <button
                                     class="flex cursor-pointer items-center justify-center px-2 py-1.5 text-zinc-400 transition-colors hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-zinc-500 dark:hover:text-zinc-300"
-                                    :disabled="!canZoomIn" @click="zoomIn">
+                                    :disabled="!canZoomIn" @click="handleZoomIn">
                                     <Plus class="h-3.5 w-3.5" />
                                 </button>
                             </div>
@@ -814,26 +853,26 @@
                                 </div>
 
                                 <div class="relative flex-1 overflow-hidden">
-                                    <div ref="headerTrackRef" class="min-w-max transform-gpu will-change-transform">
-                                        <div class="flex">
+                                    <div ref="headerTrackRef" class="min-w-full transform-gpu will-change-transform">
+                                        <div class="flex min-w-full">
                                             <div v-for="date in dates" :key="`date-${date.key}`"
-                                                class="h-12 border-r border-b px-3 text-center text-xs font-semibold tracking-wide uppercase flex items-center justify-center"
+                                                class="h-12 flex-1 border-r border-b px-3 text-center text-xs font-semibold tracking-wide uppercase flex items-center justify-center"
                                                 :class="isTodayDate(date.key)
                                                     ? 'border-blue-400/80 bg-blue-100 text-blue-800 dark:border-blue-500/70 dark:bg-blue-900/35 dark:text-blue-100'
                                                     : 'border-zinc-200/70 bg-zinc-100/70 text-zinc-500 dark:border-zinc-700/70 dark:bg-zinc-900/60 dark:text-zinc-300'"
-                                                :style="{ width: dateGroupWidth }">
+                                                :style="{ minWidth: dateGroupWidth }">
                                                 {{ isTodayDate(date.key) ? "Aujourd'hui" : date.label }}
                                             </div>
                                         </div>
 
-                                        <div class="flex">
+                                        <div class="flex min-w-full">
                                             <template v-for="date in dates" :key="`periods-${date.key}`">
                                                 <div v-for="period in periods" :key="`${date.key}-${period.key}`"
-                                                    class="h-10 border-r px-3 text-center text-[11px] font-semibold tracking-wide flex items-center justify-center"
+                                                    class="h-10 flex-1 border-r px-3 text-center text-[11px] font-semibold tracking-wide flex items-center justify-center"
                                                     :class="isTodayDate(date.key)
                                                         ? 'border-blue-300/75 bg-blue-100/80 text-blue-800/90 dark:border-blue-700/75 dark:bg-blue-900/25 dark:text-blue-200/95'
                                                         : 'border-zinc-200/60 bg-zinc-100/55 text-zinc-400 dark:border-zinc-700/70 dark:bg-zinc-900/45 dark:text-zinc-400'"
-                                                    :style="{ width: cellWidth }">
+                                                    :style="{ minWidth: cellWidth }">
                                                     {{ period.label }}
                                                 </div>
                                             </template>
@@ -846,7 +885,7 @@
                         <div class="flex min-h-0 flex-1">
                             <div class="shrink-0 overflow-hidden border-r border-zinc-300/70 dark:border-zinc-700/70"
                                 :style="{ width: roomColWidth }">
-                                <div ref="sidebarTrackRef" class="transform-gpu will-change-transform">
+                                <div ref="sidebarTrackRef" class="min-h-full transform-gpu will-change-transform">
                                     <div v-for="room in rooms" :key="`room-${room.id}`"
                                         class="border-b border-zinc-200/70 bg-zinc-100/60 px-4 py-2.5 text-left font-medium text-zinc-500 dark:border-zinc-700/70 dark:bg-zinc-900/55 dark:text-zinc-300 flex items-center"
                                         :style="{ height: cellHeight }">
@@ -857,13 +896,13 @@
 
                             <div ref="gridScrollerRef" class="min-h-0 min-w-0 flex-1 overflow-auto"
                                 @scroll="onGridScroll">
-                                <div class="min-w-max">
-                                    <div v-for="room in rooms" :key="`row-${room.id}`" class="flex">
+                                <div class="min-w-full">
+                                    <div v-for="room in rooms" :key="`row-${room.id}`" class="flex min-w-full">
                                         <template v-for="date in dates" :key="`${room.id}-${date.key}`">
                                             <div v-for="period in periods" :key="`${room.id}-${date.key}-${period.key}`"
-                                                class="group relative border-r border-b border-zinc-100 bg-white px-0 py-0 transition-colors dark:border-zinc-800 dark:bg-zinc-950"
+                                                class="group relative flex-1 border-r border-b border-zinc-100 bg-white px-0 py-0 transition-colors dark:border-zinc-800 dark:bg-zinc-950"
                                                 :class="isDropTarget(room.id, date.key, period.key) ? 'bg-zinc-100/80 dark:bg-zinc-900/80' : ''"
-                                                :style="{ width: cellWidth, height: cellHeight }"
+                                                :style="{ minWidth: cellWidth, height: cellHeight }"
                                                 @dragover="onCellDragOver(room.id, date.key, period.key, $event)"
                                                 @drop="onCellDrop(room.id, date.key, period.key, $event)">
                                                 <SchedulerAssignmentCard
