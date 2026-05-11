@@ -227,16 +227,16 @@
 
             <div class="flex items-center gap-1.5">
                 <span v-if="showStatusBadge"
-                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border border-black dark:border-white"
                     :class="statusClass">
                     {{ statusLabel }}
                 </span>
 
                 <div v-if="showActions" ref="actionMenuTriggerRef"
-                    class="inline-flex cursor-pointer items-center text-zinc-500 transition-colors hover:text-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
+                    class="opacity-0 group-hover:opacity-100 inline-flex cursor-pointer items-center text-neutral-700 transition-colors hover:text-black dark:text-neutral-200 dark:hover:text-white"
                     title="Actions" role="button" tabindex="0" @mousedown.stop @click.stop="toggleActionMenu"
                     @keydown.enter.prevent.stop="toggleActionMenu" @keydown.space.prevent.stop="toggleActionMenu">
-                    <Settings2 class="h-5 w-5" />
+                    <Settings2 class="h-4 w-4" />
                 </div>
             </div>
         </div>
