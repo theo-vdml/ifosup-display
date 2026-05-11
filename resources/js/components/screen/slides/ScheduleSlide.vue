@@ -118,29 +118,46 @@
             <div ref="outerContainer" class="h-full overflow-hidden relative">
                 <div ref="innerContent" :style="{ transform: `translateY(-${translateY}px)` }">
                     <div v-for="(row, index) in data.rows" :key="row.id ?? index"
-                        class="grid grid-cols-[2fr_2fr_2fr_1fr] gap-6 items-center py-8 px-14"
-                        :class="index % 2 === 0 ? 'bg-white' : ''">
+                        class="grid grid-cols-[2fr_2fr_2fr_1fr] gap-6 items-center py-8 px-14 border-b border-gray-300"
+                        :class="row.status === 'cancelled' ? 'bg-red-50' : row.status === 'late' ? 'bg-orange-50' : index % 2 === 0 ? 'bg-white' : ''">
                         <!-- Course -->
                         <div class="min-w-0">
-                            <p class="text-gray-900 text-2xl font-bold leading-tight truncate">{{ row.course?.name }}
+                            <p class="text-2xl font-bold leading-tight truncate"
+                                :class="row.status === 'cancelled' ? 'text-red-600' : 'text-gray-900'">{{
+                                    row.course?.name }}
                             </p>
                             <p v-if="row.course?.code"
-                                class="text-[#1e2d55] text-base font-bold uppercase tracking-widest leading-none mt-2 italic">
+                                class="text-base font-bold uppercase tracking-widest leading-none mt-2 italic"
+                                :class="row.status === 'cancelled' ? 'text-red-400' : 'text-[#1e2d55]'">
                                 {{ row.course.code }}
                             </p>
                         </div>
 
                         <!-- Teacher -->
-                        <span class="text-gray-700 text-xl font-semibold truncate">{{ row.course?.teacher?.name ?? '—'
-                            }}</span>
+                        <span class="inline-flex items-center gap-3 text-xl font-semibold truncate"
+                            :class="row.status === 'cancelled' ? 'text-red-600' : row.status === 'late' ? 'text-orange-400' : 'text-gray-700'">
+                            <span>{{
+                                row.course?.teacher?.name ?? '—' }}</span>
+                            <span v-if="row.status === 'late'"
+                                class="shrink-0 rounded-full bg-orange-100 border border-orange-300 px-3 py-0.5 text-sm font-semibold text-orange-700">
+                                En retard
+                            </span>
+                        </span>
 
                         <!-- Groups -->
-                        <span class="text-gray-700 text-xl font-semibold truncate">
+                        <span class="text-xl font-semibold truncate"
+                            :class="row.status === 'cancelled' ? 'text-red-600' : 'text-gray-700'">
                             {{row.course?.groups?.map(g => g.name).join(', ') || '—'}}
                         </span>
 
                         <!-- Room -->
-                        <span class="text-gray-700 text-2xl font-semibold">{{ row.room?.name ?? '—' }}</span>
+                        <span v-if="row.status === 'cancelled'"
+                            class="text-red-600 text-2xl font-bold uppercase tracking-wide">
+                            Annulé
+                        </span>
+                        <span v-else class="text-gray-700 text-2xl font-semibold">
+                            {{ row.room?.name ?? '—' }}
+                        </span>
                     </div>
 
                     <!-- Empty state -->
