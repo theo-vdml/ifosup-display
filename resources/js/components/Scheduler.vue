@@ -120,12 +120,6 @@
     const isRangeLoading = ref(false);
     let rangeReloadTimer: number | null = null;
 
-    const focusToday = () => {
-        fromDateInput.value = todayDateKey;
-        toDateInput.value = todayDateKey;
-        reloadRange(todayDateKey, todayDateKey);
-    };
-
     const periods: Array<{ key: AssignmentPeriod; label: string }> = [
         { key: 'morning', label: 'Matin' },
         { key: 'afternoon', label: 'Après-midi' },
@@ -1077,13 +1071,6 @@
                         <div class="flex items-center gap-2">
                             <SchedulerDateRangePicker :from-date="fromDateInput" :to-date="toDateInput"
                                 @change="onDateRangeChange" />
-
-                            <button type="button"
-                                class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/80 px-2.5 text-xs font-semibold text-zinc-600 shadow-sm backdrop-blur-sm transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-                                @click="focusToday">
-                                <CalendarDays class="h-3.5 w-3.5" />
-                                Aujourd'hui
-                            </button>
                         </div>
 
                         <div class="flex items-center justify-end gap-1.5">

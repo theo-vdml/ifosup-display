@@ -21,7 +21,7 @@ import {
     useDateFormatter,
     type DateRange,
 } from 'reka-ui';
-import { ref, shallowRef, watch } from 'vue';
+import { onMounted, ref, shallowRef, watch } from 'vue';
 
 type DateRangePayload = {
     from: string;
@@ -62,6 +62,78 @@ const isoToCalendarDate = (iso: string) => {
 
 const calendarDateToIso = (d: DateValue) =>
     `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+
+const isoDate = (d: Date): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+type Preset = { label: string; getRange: () => { from: string; to: string } };
+
+const presets: Preset[] = [
+    {
+        label: "Aujourd'hui",
+        getRange: () => { const d = isoDate(new Date()); return { from: d, to: d }; },
+    },
+    {
+        label: 'Cette semaine',
+        getRange: () => {
+            const now = new Date();
+            const diff = now.getDay() === 0 ? -6 : 1 - now.getDay();
+            const mon = new Date(now); mon.setDate(now.getDate() + diff);
+            const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+            return { from: isoDate(mon), to: isoDate(sun) };
+        },
+    },
+    {
+        label: 'Ce mois-ci',
+        getRange: () => {
+            const now = new Date();
+            return {
+                from: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+                to: isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+            };
+        },
+    },
+    {
+        label: '7 prochains jours',
+        getRange: () => {
+            const now = new Date(); const end = new Date(now); end.setDate(now.getDate() + 6);
+            return { from: isoDate(now), to: isoDate(end) };
+        },
+    },
+    {
+        label: '30 prochains jours',
+        getRange: () => {
+            const now = new Date(); const end = new Date(now); end.setDate(now.getDate() + 29);
+            return { from: isoDate(now), to: isoDate(end) };
+        },
+    },
+    {
+        label: 'Mois prochain',
+        getRange: () => {
+            const now = new Date();
+            return {
+                from: isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 1)),
+                to: isoDate(new Date(now.getFullYear(), now.getMonth() + 2, 0)),
+            };
+        },
+    },
+];
+
+const getMatchingPreset = (): string | null => {
+    for (const preset of presets) {
+        const r = preset.getRange();
+        if (r.from === props.fromDate && r.to === props.toDate) return preset.label;
+    }
+    return null;
+};
+
+const activePresetLabel = ref<string | null>(null);
+
+const applyPreset = (preset: Preset) => {
+    activePresetLabel.value = preset.label;
+    isDatePopoverOpen.value = false;
+    emit('change', preset.getRange());
+};
 
 const isOutsideViewDate = (date: DateValue, monthValue: DateValue) => {
     return date.year !== monthValue.year || date.month !== monthValue.month;
@@ -137,6 +209,7 @@ const onCalendarRangeChange = (range: DateRange) => {
 
     isSelectingNewRange.value = false;
     isDatePopoverOpen.value = false;
+    activePresetLabel.value = null;
     emit('change', {
         from: normalizedFrom,
         to: normalizedTo,
@@ -147,8 +220,13 @@ watch(
     () => [props.fromDate, props.toDate],
     () => {
         resetDraftCalendarRange();
+        activePresetLabel.value = getMatchingPreset();
     },
 );
+
+onMounted(() => {
+    activePresetLabel.value = getMatchingPreset();
+});
 
 watch(isDatePopoverOpen, (isOpen) => {
     if (isOpen) {
@@ -165,11 +243,11 @@ watch(isDatePopoverOpen, (isOpen) => {
         <PopoverTrigger as-child>
             <button
                 type="button"
-                class="inline-flex h-8 items-center gap-2 rounded-md border border-zinc-300 bg-white px-2.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                class="inline-flex h-8 cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-2.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
                 <CalendarDays class="h-3.5 w-3.5" />
                 <span>
-                    {{ formatDisplayDate(props.fromDate) }} - {{ formatDisplayDate(props.toDate) }}
+                    {{ activePresetLabel ?? `${formatDisplayDate(props.fromDate)} – ${formatDisplayDate(props.toDate)}` }}
                 </span>
             </button>
         </PopoverTrigger>
@@ -283,59 +361,20 @@ watch(isDatePopoverOpen, (isOpen) => {
                     </div>
                 </RangeCalendarRoot>
 
-                <DateRangeFieldRoot
-                    v-slot="{ segments }"
-                    :model-value="draftCalendarRange"
-                    locale="fr-BE"
-                    class="flex items-center gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800"
-                    @update:model-value="onCalendarRangeChange"
-                >
-                    <div class="flex items-center rounded-md border border-zinc-200 bg-white px-2 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                        <template v-for="item in segments.start" :key="item.part">
-                            <DateRangeFieldInput
-                                v-if="item.part === 'literal'"
-                                :part="item.part"
-                                type="start"
-                                class="text-xs text-zinc-400 dark:text-zinc-500"
-                            >
-                                {{ item.value }}
-                            </DateRangeFieldInput>
-                            <DateRangeFieldInput
-                                v-else
-                                :part="item.part"
-                                type="start"
-                                class="rounded px-0.5 text-center text-xs text-zinc-700 outline-none focus:bg-zinc-100 dark:text-zinc-200 dark:focus:bg-zinc-700"
-                                :class="item.part === 'year' ? 'w-9' : 'w-6'"
-                            >
-                                {{ item.value }}
-                            </DateRangeFieldInput>
-                        </template>
-                    </div>
-
-                    <span class="text-xs text-zinc-400">–</span>
-
-                    <div class="flex items-center rounded-md border border-zinc-200 bg-white px-2 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                        <template v-for="item in segments.end" :key="item.part">
-                            <DateRangeFieldInput
-                                v-if="item.part === 'literal'"
-                                :part="item.part"
-                                type="end"
-                                class="text-xs text-zinc-400 dark:text-zinc-500"
-                            >
-                                {{ item.value }}
-                            </DateRangeFieldInput>
-                            <DateRangeFieldInput
-                                v-else
-                                :part="item.part"
-                                type="end"
-                                class="rounded px-0.5 text-center text-xs text-zinc-700 outline-none focus:bg-zinc-100 dark:text-zinc-200 dark:focus:bg-zinc-700"
-                                :class="item.part === 'year' ? 'w-9' : 'w-6'"
-                            >
-                                {{ item.value }}
-                            </DateRangeFieldInput>
-                        </template>
-                    </div>
-                </DateRangeFieldRoot>
+                <div class="w-0 min-w-full flex flex-wrap gap-1.5 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
+                    <button
+                        v-for="preset in presets"
+                        :key="preset.label"
+                        type="button"
+                        @click="applyPreset(preset)"
+                        class="rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer"
+                        :class="activePresetLabel === preset.label
+                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                            : 'border-zinc-200 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200'"
+                    >
+                        {{ preset.label }}
+                    </button>
+                </div>
             </PopoverContent>
         </PopoverPortal>
     </PopoverRoot>
