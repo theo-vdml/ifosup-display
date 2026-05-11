@@ -41,8 +41,8 @@
                 <InputError class="mt-2" :message="errors.teacher" />
             </div>
             <div class="grid gap-2">
-                <Label for="group">Groupes</Label>
-                <Combobox :options="props.groups" multiple placeholder="Séléctionner le(s) groupe(s)" name="groups"
+                <Label for="group">Sections</Label>
+                <Combobox :options="props.groups" multiple placeholder="Séléctionner le(s) section(s)" name="groups"
                     valueKey="id" :displayFunction="(opt) => opt.name" />
                 <InputError class="mt-2" :message="errors.group" />
             </div>

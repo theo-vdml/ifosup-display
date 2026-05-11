@@ -53,7 +53,7 @@
                             <span
                                 class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
                                 <UsersRoundIcon class="h-3 w-3 mt-px" />
-                                {{ groups.length }} groupe{{ groups.length !== 1 ? 's' : '' }}
+                                {{ groups.length }} section{{ groups.length !== 1 ? 's' : '' }}
                             </span>
                         </div>
                     </div>
@@ -76,7 +76,7 @@
             </section>
 
             <section class="space-y-3">
-                <h3 class="text-sm font-semibold tracking-wide text-muted-foreground">Groupes</h3>
+                <h3 class="text-sm font-semibold tracking-wide text-muted-foreground">Sections</h3>
 
                 <div v-if="groups.length" class="grid gap-3">
                     <ResourceListItem v-for="group in groups" :key="group.id" :href="groupActions.show(group.id).url"
@@ -88,7 +88,7 @@
                     class="rounded-xl border border-dashed border-sidebar-border/70 bg-zinc-50/50 p-6 text-sm text-muted-foreground dark:bg-zinc-900/30">
                     <div class="flex items-center gap-2">
                         <Layers3Icon class="h-4 w-4" />
-                        <p>Aucun groupe associé à ce cours pour le moment.</p>
+                        <p>Aucune section associée à ce cours pour le moment.</p>
                     </div>
                 </div>
             </section>
