@@ -18,6 +18,7 @@ class StoreScheduleAssignmentRequest extends FormRequest
             'room_id' => 'required|exists:rooms,id',
             'date' => 'required|date_format:Y-m-d',
             'period' => 'required|in:morning,afternoon,evening',
+            'status' => 'sometimes|in:planned,cancelled,late',
         ];
     }
 }

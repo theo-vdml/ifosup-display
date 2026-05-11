@@ -33,6 +33,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('schedule.assignments.store');
     Route::patch('scheduler/assignments/{assignment}', [ScheduleController::class, 'update'])
         ->name('schedule.assignments.update');
+    Route::patch('scheduler/assignments/{assignment}/status', [ScheduleController::class, 'updateStatus'])
+        ->name('schedule.assignments.update-status');
+    Route::delete('scheduler/assignments/{assignment}', [ScheduleController::class, 'destroy'])
+        ->name('schedule.assignments.destroy');
 });
 
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ScheduleIndexRequest;
 use App\Http\Requests\StoreScheduleAssignmentRequest;
 use App\Http\Requests\UpdateScheduleAssignmentRequest;
+use App\Http\Requests\UpdateScheduleAssignmentStatusRequest;
 use App\Models\Assignment;
 use App\Models\Course;
 use App\Models\Room;
@@ -108,6 +109,26 @@ class ScheduleController extends Controller
 
         return response()->json([
             'assignment' => $assignment->load(['course', 'room']),
+        ]);
+    }
+
+    public function updateStatus(
+        UpdateScheduleAssignmentStatusRequest $request,
+        Assignment $assignment,
+    ): JsonResponse {
+        $assignment->update($request->validated());
+
+        return response()->json([
+            'assignment' => $assignment->load(['course', 'room']),
+        ]);
+    }
+
+    public function destroy(Assignment $assignment): JsonResponse
+    {
+        $assignment->delete();
+
+        return response()->json([
+            'deleted' => true,
         ]);
     }
 

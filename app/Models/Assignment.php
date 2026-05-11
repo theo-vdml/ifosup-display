@@ -16,6 +16,7 @@ class Assignment extends Model
         'room_id',
         'date',
         'period',
+        'status',
         'recurring_assignment_id',
         'is_detached',
     ];

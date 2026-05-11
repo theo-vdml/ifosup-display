@@ -23,6 +23,7 @@ class AssignmentFactory extends Factory
             'room_id' => fake()->boolean(90) ? Room::factory() : null,
             'date' => fake()->dateTimeThisMonth()->format('Y-m-d'),
             'period' => fake()->randomElement(['morning', 'afternoon', 'evening']),
+            'status' => 'planned',
         ];
     }
 }

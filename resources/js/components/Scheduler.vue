@@ -23,6 +23,7 @@
     type CellDetails = {
         course: Course,
         theme: DerivedTheme;
+        assignment?: PersistedAssignment;
     }
 
     type PersistedAssignment = AssignmentWithRelations & {
@@ -210,6 +211,7 @@
             map.set(key, {
                 course: assignment.course,
                 theme: getThemeFromSeed(assignment.course.name),
+                assignment,
             });
         }
 
@@ -500,6 +502,48 @@
         return payload.assignment;
     };
 
+    const persistAssignmentDelete = async (assignmentId: number) => {
+        const response = await fetch(`/scheduler/assignments/${assignmentId}`, {
+            method: 'DELETE',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(await parseResponseError(response, 'La suppression du cours a echoue.'));
+        }
+    };
+
+    const persistAssignmentStatus = async (
+        assignmentId: number,
+        status: AssignmentStatus,
+    ) => {
+        const response = await fetch(`/scheduler/assignments/${assignmentId}/status`, {
+            method: 'PATCH',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ status }),
+        });
+
+        if (!response.ok) {
+            throw new Error(await parseResponseError(response, 'La mise a jour du statut a echoue.'));
+        }
+
+        const payload = await response.json() as { assignment: PersistedAssignment };
+
+        return payload.assignment;
+    };
+
     const showError = (error: unknown, fallbackMessage: string) => {
         const message = error instanceof Error
             ? error.message
@@ -724,6 +768,62 @@
         clearDragState();
     };
 
+    const updateAssignmentStatus = async (assignment: PersistedAssignment, status: AssignmentStatus) => {
+        if (!assignment.id) {
+            return;
+        }
+
+        const index = assignments.value.findIndex((item) => item.id === assignment.id);
+
+        if (index === -1) {
+            return;
+        }
+
+        const previousStatus = assignments.value[index].status;
+        assignments.value[index] = {
+            ...assignments.value[index],
+            status,
+        };
+        assignments.value = [...assignments.value];
+
+        try {
+            const persistedAssignment = await persistAssignmentStatus(assignment.id, status);
+            assignments.value[index] = persistedAssignment;
+            assignments.value = [...assignments.value];
+        }
+        catch (error) {
+            assignments.value[index] = {
+                ...assignments.value[index],
+                status: previousStatus,
+            };
+            assignments.value = [...assignments.value];
+            showError(error, 'La mise a jour du statut a echoue.');
+        }
+    };
+
+    const deleteAssignment = async (assignment: PersistedAssignment) => {
+        if (!assignment.id) {
+            return;
+        }
+
+        const index = assignments.value.findIndex((item) => item.id === assignment.id);
+
+        if (index === -1) {
+            return;
+        }
+
+        const previousAssignments = [...assignments.value];
+        assignments.value = assignments.value.filter((item) => item.id !== assignment.id);
+
+        try {
+            await persistAssignmentDelete(assignment.id);
+        }
+        catch (error) {
+            assignments.value = previousAssignments;
+            showError(error, 'La suppression du cours a echoue.');
+        }
+    };
+
     const isDropTarget = (roomId: number, dateKey: string, period: AssignmentPeriod) => {
         return dropTargetKey.value === buildCellKey(roomId, dateKey, period);
     };
@@ -909,9 +1009,15 @@
                                                     v-if="getCellDetails(room.id, date.key, period.key)"
                                                     :details="getCellDetails(room.id, date.key, period.key)!"
                                                     :zoom="zoom"
+                                                    :status="getCellDetails(room.id, date.key, period.key)!.assignment?.status"
+                                                    :show-actions="true"
                                                     :is-dragged="isDraggedAssignment(room.id, date.key, period.key)"
                                                     @dragstart="onAssignmentDragStart(room.id, date.key, period.key, $event)"
-                                                    @dragend="clearDragState()" />
+                                                    @dragend="clearDragState()"
+                                                    @mark-cancelled="updateAssignmentStatus(getCellDetails(room.id, date.key, period.key)!.assignment!, 'cancelled')"
+                                                    @mark-late="updateAssignmentStatus(getCellDetails(room.id, date.key, period.key)!.assignment!, 'late')"
+                                                    @reset-status="updateAssignmentStatus(getCellDetails(room.id, date.key, period.key)!.assignment!, 'planned')"
+                                                    @delete="deleteAssignment(getCellDetails(room.id, date.key, period.key)!.assignment!)" />
 
                                                 <div v-else class="relative flex h-full items-center justify-center">
                                                     <PlaceholderPattern
@@ -957,6 +1063,7 @@
                                     <div v-for="course in filteredCourses" :key="`course-${course.id}`" class="h-24">
                                         <SchedulerAssignmentCard :details="getCourseDetails(course)"
                                             :zoom="coursePanelCardZoom" :is-dragged="draggedCourseId === course.id"
+                                            :show-actions="false"
                                             @dragstart="onCourseDragStart(course, $event)"
                                             @dragend="clearDragState()" />
                                     </div>
