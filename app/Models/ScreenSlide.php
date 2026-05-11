@@ -32,6 +32,27 @@ class ScreenSlide extends Model
         'is_locked' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (self $slide): void {
+            if ($slide->image_path) {
+                Storage::delete($slide->image_path);
+            }
+            if ($slide->video_path) {
+                Storage::delete($slide->video_path);
+            }
+        });
+
+        static::updating(function (self $slide): void {
+            if ($slide->isDirty('image_path') && $slide->getOriginal('image_path')) {
+                Storage::delete($slide->getOriginal('image_path'));
+            }
+            if ($slide->isDirty('video_path') && $slide->getOriginal('video_path')) {
+                Storage::delete($slide->getOriginal('video_path'));
+            }
+        });
+    }
+
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('position')->orderBy('id');

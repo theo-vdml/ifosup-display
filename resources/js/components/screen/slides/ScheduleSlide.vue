@@ -36,10 +36,11 @@
     const SPEED = 0.6;
     const INITIAL_PAUSE_FRAMES = 300;  // 5s at 60fps
     const BOTTOM_PAUSE_FRAMES = 300;  // 5s at 60fps
-    const NO_SCROLL_FRAMES = 600;  // 10s if content already fits
+    const NO_SCROLL_FRAMES = 600;     // 10s at 60fps
 
-    // phases: 'initial-wait' → 'scrolling' → 'bottom-wait' → done
-    //         'initial-wait' → 'no-scroll-wait' → done  (when nothing to scroll)
+    // phases: 'initial-wait' → next               (no content)
+    //         'initial-wait' → 'no-scroll-wait' → next  (content, no scroll)
+    //         'initial-wait' → 'scrolling' → 'bottom-wait' → next  (scroll)
     let phase = 'initial-wait';
     let phaseFrames = INITIAL_PAUSE_FRAMES;
     let animationId = null;
@@ -55,8 +56,13 @@
 
         if (phase === 'initial-wait') {
             if (--phaseFrames <= 0) {
-                phase = maxTranslate > 0 ? 'scrolling' : 'no-scroll-wait';
-                phaseFrames = NO_SCROLL_FRAMES;
+                if (!props.data?.rows?.length) { emit('next'); return; }
+                if (maxTranslate > 0) {
+                    phase = 'scrolling';
+                } else {
+                    phase = 'no-scroll-wait';
+                    phaseFrames = NO_SCROLL_FRAMES;
+                }
             }
         } else if (phase === 'scrolling') {
             translateY.value = Math.min(translateY.value + SPEED, maxTranslate);
@@ -106,7 +112,7 @@
         </div>
 
         <!-- Column headers -->
-        <div class="grid grid-cols-[2fr_2fr_2fr_1fr] gap-6 px-14 py-6 shrink-0 bg-[#f2ae35]">
+        <div v-if="data.rows?.length" class="grid grid-cols-[2fr_2fr_2fr_1fr] gap-6 px-14 py-6 shrink-0 bg-[#f2ae35]">
             <span class="text-black text-lg font-black uppercase tracking-widest">Cours</span>
             <span class="text-black text-lg font-black uppercase tracking-widest">Professeur</span>
             <span class="text-black text-lg font-black uppercase tracking-widest">Sections</span>
@@ -161,7 +167,9 @@
                     </div>
 
                     <!-- Empty state -->
-                    <div v-if="!data.rows?.length" class="flex items-center justify-center py-20 px-14">
+                    <div v-if="!data.rows?.length" class="flex flex-col items-center justify-center gap-6"
+                        :style="{ height: outerContainer?.offsetHeight + 'px' }">
+                        <img src="/empty.svg" class="size-96 opacity-60" alt="">
                         <p class="text-gray-400 text-2xl font-semibold">Aucun cours prévu pour le moment.</p>
                     </div>
                 </div>

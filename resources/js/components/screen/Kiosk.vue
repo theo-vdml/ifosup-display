@@ -1,7 +1,7 @@
 <template>
     <div class="h-screen w-screen bg-black overflow-hidden relative">
 
-        <transition name="slide" mode="out-in">
+        <transition name="slide">
             <component v-if="currentSlide" :is="components[currentSlide.type]" :key="currentSlideKey"
                 :data="currentSlide.data" @next="goToNextSlide" />
         </transition>
@@ -336,22 +336,20 @@
 
 <style scoped>
 .slide-enter-active {
-    transition: opacity 800ms ease, transform 800ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 700ms cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 .slide-leave-active {
-    transition: opacity 400ms ease, transform 400ms ease;
+    transition: transform 700ms cubic-bezier(0.76, 0, 0.24, 1);
     position: absolute;
     inset: 0;
 }
 
 .slide-enter-from {
-    opacity: 0;
-    transform: translateX(60px);
+    transform: translateX(100%);
 }
 
 .slide-leave-to {
-    opacity: 0;
-    transform: translateX(-60px);
+    transform: translateX(-100%);
 }
 </style>
