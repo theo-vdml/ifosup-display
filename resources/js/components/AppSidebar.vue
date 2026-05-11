@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { Link } from '@inertiajs/vue3';
-    import { BookOpen, FolderGit2, LayoutGrid, GraduationCap, DoorOpen, UsersRound, CalendarRange, Monitor } from 'lucide-vue-next';
+    import { BookOpen, GraduationCap, DoorOpen, UsersRound, CalendarRange, Monitor, ShieldEllipsis, Tv } from 'lucide-vue-next';
     import AppLogo from '@/components/AppLogo.vue';
     import NavFooter from '@/components/NavFooter.vue';
     import NavMain from '@/components/NavMain.vue';
@@ -14,19 +14,14 @@
         SidebarMenuButton,
         SidebarMenuItem,
     } from '@/components/ui/sidebar';
-    import { dashboard, schedule } from '@/routes';
+    import { schedule } from '@/routes';
     import type { NavItem } from '@/types';
     import teachers from '@/routes/teachers';
     import rooms from '@/routes/rooms';
     import groups from '@/routes/groups';
     import courses from '@/routes/courses';
 
-    const mainNavItems: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: dashboard(),
-            icon: LayoutGrid,
-        },
+    const resourceNavItems: NavItem[] = [
         {
             title: 'Enseignants',
             href: teachers.index(),
@@ -45,21 +40,38 @@
         {
             title: 'Cours',
             href: courses.index(),
-            icon: BookOpen
+            icon: BookOpen,
         },
+    ];
+
+    const displayNavItems: NavItem[] = [
         {
             title: 'Planning',
             href: schedule(),
-            icon: CalendarRange
+            icon: CalendarRange,
         },
         {
-            title: 'Slides ecran',
+            title: 'Slides écran',
             href: '/screen/slides',
             icon: Monitor,
-        }
+        },
     ];
 
-    const footerNavItems: NavItem[] = [];
+    const adminNavItems: NavItem[] = [
+        {
+            title: 'Utilisateurs',
+            href: '/admin/users',
+            icon: ShieldEllipsis,
+        },
+    ];
+
+    const footerNavItems: NavItem[] = [
+        {
+            title: 'Écran TV',
+            href: '/screen',
+            icon: Tv,
+        },
+    ];
 </script>
 
 <template>
@@ -68,7 +80,7 @@
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="schedule()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -77,7 +89,9 @@
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="resourceNavItems" label="Ressources" />
+            <NavMain :items="displayNavItems" label="Affichage" />
+            <NavMain :items="adminNavItems" label="Administration" />
         </SidebarContent>
 
         <SidebarFooter>

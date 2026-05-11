@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\RoomController;
@@ -8,17 +9,13 @@ use App\Http\Controllers\ScreenController;
 use App\Http\Controllers\ScreenSlideController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
 
-Route::inertia('/', 'Welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::inertia('/', 'Welcome')->name('home');
 
 Route::get('screen', [ScreenController::class, 'index'])->name('screen');
 Route::get('screen/data', [ScreenController::class, 'data'])->name('screen.data');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::resource('teachers', TeacherController::class);
     Route::resource('rooms', RoomController::class);
     Route::resource('groups', GroupController::class);
@@ -43,6 +40,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('screen/slides/order', [ScreenSlideController::class, 'reorder'])->name('screen.slides.reorder');
     Route::patch('screen/slides/{screenSlide}', [ScreenSlideController::class, 'update'])->name('screen.slides.update');
     Route::delete('screen/slides/{screenSlide}', [ScreenSlideController::class, 'destroy'])->name('screen.slides.destroy');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('users', AdminUserController::class)->names([
+            'index'   => 'users.index',
+            'create'  => 'users.create',
+            'store'   => 'users.store',
+            'show'    => 'users.show',
+            'edit'    => 'users.edit',
+            'update'  => 'users.update',
+            'destroy' => 'users.destroy',
+        ]);
+    });
 });
 
 

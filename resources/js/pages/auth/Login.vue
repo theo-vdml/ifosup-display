@@ -1,110 +1,117 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import AuthBase from '@/layouts/AuthLayout.vue';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+    import { Form, Head, Link } from '@inertiajs/vue3';
+    import InputError from '@/components/InputError.vue';
+    import { Checkbox } from '@/components/ui/checkbox';
+    import { Input } from '@/components/ui/input';
+    import { Label } from '@/components/ui/label';
+    import { Spinner } from '@/components/ui/spinner';
+    import { store } from '@/routes/login';
+    import { home } from '@/routes';
 
-defineProps<{
-    status?: string;
-    canResetPassword: boolean;
-    canRegister: boolean;
-}>();
+    defineProps<{
+        status?: string;
+    }>();
 </script>
 
 <template>
-    <AuthBase
-        title="Log in to your account"
-        description="Enter your email and password below to log in"
-    >
-        <Head title="Log in" />
 
-        <div
-            v-if="status"
-            class="mb-4 text-center text-sm font-medium text-green-600"
-        >
-            {{ status }}
+    <Head title="Connexion" />
+
+    <div class="relative min-h-screen flex flex-col" style="background-color: #1e2d55;">
+
+        <!-- Background decoration -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute -top-40 -right-40 w-150 h-150 rounded-full opacity-10"
+                style="background: radial-gradient(circle, #f2ae35, transparent 70%);" />
+            <div class="absolute -bottom-32 -left-32 w-100 h-100 rounded-full opacity-[0.07]"
+                style="background: radial-gradient(circle, #f2ae35, transparent 70%);" />
         </div>
 
-        <Form
-            v-bind="store.form()"
-            :reset-on-success="['password']"
-            v-slot="{ errors, processing }"
-            class="flex flex-col gap-6"
-        >
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        name="email"
-                        required
-                        autofocus
-                        :tabindex="1"
-                        autocomplete="email"
-                        placeholder="email@example.com"
-                    />
-                    <InputError :message="errors.email" />
-                </div>
+        <!-- Header -->
+        <header class="relative z-10 flex items-center px-10 py-6 border-b"
+            style="border-color: rgba(242,174,53,0.15);">
+            <Link :href="home()" class="flex items-center gap-4">
+                <img src="/IFO_Gimmick_SUPERIEUR.png" alt="IFOSUP" class="h-10 w-auto object-contain" />
+                <span class="text-base font-black uppercase tracking-[0.2em]" style="color: #f2ae35;">IFOSUP
+                    Display</span>
+            </Link>
+        </header>
 
-                <div class="grid gap-2">
-                    <div class="flex items-center justify-between">
-                        <Label for="password">Password</Label>
-                        <TextLink
-                            v-if="canResetPassword"
-                            :href="request()"
-                            class="text-sm"
-                            :tabindex="5"
-                        >
-                            Forgot password?
-                        </TextLink>
+        <!-- Login card -->
+        <main class="relative z-10 flex flex-1 items-center justify-center px-6 py-16">
+            <div class="w-full max-w-md">
+
+                <!-- Card -->
+                <div class="rounded-2xl border p-10 shadow-2xl"
+                    style="background-color: rgba(255,255,255,0.04); border-color: rgba(242,174,53,0.2);">
+
+                    <!-- Title -->
+                    <div class="mb-8 flex flex-col gap-1">
+                        <h1 class="text-2xl font-black uppercase tracking-wide text-white">Connexion</h1>
+                        <p class="text-sm" style="color: rgba(255,255,255,0.5);">
+                            Accédez à la plateforme de gestion d'affichage.
+                        </p>
                     </div>
-                    <Input
-                        id="password"
-                        type="password"
-                        name="password"
-                        required
-                        :tabindex="2"
-                        autocomplete="current-password"
-                        placeholder="Password"
-                    />
-                    <InputError :message="errors.password" />
+
+                    <!-- Status message -->
+                    <div v-if="status" class="mb-6 rounded-lg px-4 py-3 text-sm font-medium text-green-300"
+                        style="background-color: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);">
+                        {{ status }}
+                    </div>
+
+                    <Form v-bind="store.form()" :reset-on-success="['password']" v-slot="{ errors, processing }"
+                        class="flex flex-col gap-5">
+                        <!-- Email -->
+                        <div class="flex flex-col gap-2">
+                            <Label for="email" class="text-xs font-bold uppercase tracking-widest"
+                                style="color: rgba(255,255,255,0.6);">
+                                Adresse email
+                            </Label>
+                            <Input id="email" type="email" name="email" required autofocus :tabindex="1"
+                                autocomplete="email" placeholder="exemple@ifosup.be"
+                                class="border text-white placeholder:opacity-30 focus-visible:ring-0 focus-visible:border-[#f2ae35]"
+                                style="background-color: rgba(255,255,255,0.06); border-color: rgba(242,174,53,0.25); color: white;" />
+                            <InputError :message="errors.email" />
+                        </div>
+
+                        <!-- Password -->
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                                <Label for="password" class="text-xs font-bold uppercase tracking-widest"
+                                    style="color: rgba(255,255,255,0.6);">
+                                    Mot de passe
+                                </Label>
+                            </div>
+                            <Input id="password" type="password" name="password" required :tabindex="2"
+                                autocomplete="current-password" placeholder="••••••••"
+                                class="border text-white placeholder:opacity-30 focus-visible:ring-0 focus-visible:border-[#f2ae35]"
+                                style="background-color: rgba(255,255,255,0.06); border-color: rgba(242,174,53,0.25); color: white;" />
+                            <InputError :message="errors.password" />
+                        </div>
+
+                        <!-- Remember me -->
+                        <Label for="remember" class="flex items-center gap-3 cursor-pointer">
+                            <Checkbox id="remember" name="remember" :tabindex="3" />
+                            <span class="text-sm" style="color: rgba(255,255,255,0.5);">Se souvenir de moi</span>
+                        </Label>
+
+                        <!-- Submit -->
+                        <button type="submit" :tabindex="4" :disabled="processing"
+                            class="mt-2 flex w-full items-center justify-center gap-3 rounded-lg py-3 text-sm font-black uppercase tracking-widest transition-all duration-200 hover:brightness-110 disabled:opacity-60"
+                            style="background-color: #f2ae35; color: #1e2d55;" data-test="login-button">
+                            <Spinner v-if="processing" />
+                            <span>{{ processing ? 'Connexion…' : 'Se connecter' }}</span>
+                            <svg v-if="!processing" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none"
+                                viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                            </svg>
+                        </button>
+                    </Form>
                 </div>
 
-                <div class="flex items-center justify-between">
-                    <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox id="remember" name="remember" :tabindex="3" />
-                        <span>Remember me</span>
-                    </Label>
-                </div>
-
-                <Button
-                    type="submit"
-                    class="mt-4 w-full"
-                    :tabindex="4"
-                    :disabled="processing"
-                    data-test="login-button"
-                >
-                    <Spinner v-if="processing" />
-                    Log in
-                </Button>
             </div>
+        </main>
 
-            <div
-                class="text-center text-sm text-muted-foreground"
-                v-if="canRegister"
-            >
-                Don't have an account?
-                <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
-            </div>
-        </Form>
-    </AuthBase>
+    </div>
 </template>
