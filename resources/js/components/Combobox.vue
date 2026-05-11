@@ -144,7 +144,7 @@
             <TransitionRoot leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0"
                 @after-leave="query = ''">
                 <ComboboxOptions
-                    class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-neutral-900 p-1 text-sm shadow-md outline-none">
+                    class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-white dark:bg-neutral-900 p-1 text-sm shadow-md outline-none">
 
                     <div v-if="filteredOptions.length === 0" class="py-6 text-center text-sm text-muted-foreground">
                         No results found.
@@ -154,7 +154,7 @@
                         :value="option" v-slot="{ selected, active }">
                         <li :class="cn(
                             'relative flex w-full select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors cursor-pointer',
-                            active ? 'bg-accent text-accent-foreground' : 'text-foreground'
+                            active || selected ? 'bg-accent text-accent-foreground' : 'text-foreground'
                         )">
                             <span v-if="selected" class="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                                 <Check class="h-4 w-4" />
