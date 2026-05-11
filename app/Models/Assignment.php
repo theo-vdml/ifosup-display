@@ -17,8 +17,6 @@ class Assignment extends Model
         'date',
         'period',
         'status',
-        'recurring_assignment_id',
-        'is_detached',
     ];
 
     protected $casts = [
@@ -33,10 +31,5 @@ class Assignment extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
-    }
-
-    public function recurringAssignment()
-    {
-        return $this->belongsTo(RecurringAssignment::class);
     }
 }

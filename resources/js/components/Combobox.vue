@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends string | number | object">
-    import { ref, computed, watch } from 'vue'
+    import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
     import {
         Combobox,
         ComboboxInput,
@@ -11,10 +11,13 @@
     import { Check, ChevronsUpDown, X } from 'lucide-vue-next'
     import { cn } from "@/lib/utils"
 
+    type Badge = { label: string; color: string }
+
     type BaseComboboxProps<T> = {
         options: T[]
         displayFunction?: (option: T) => string
         filterFunction?: (option: T, query: string) => boolean
+        badgeFunction?: (option: T) => Badge | null
         valueKey?: keyof T
         placeholder?: string
         name?: string
@@ -99,11 +102,36 @@
         }
         return String(option);
     }
+
+    // ── Positioning & open-on-focus ──────────────────────────────────────────
+    const containerRef = ref<HTMLElement | null>(null);
+    const buttonRef = ref<{ $el: HTMLElement } | null>(null);
+    const dropdownStyle = ref<Record<string, string>>({});
+
+    const updatePosition = () => {
+        if (!containerRef.value) return;
+        const rect = containerRef.value.getBoundingClientRect();
+        dropdownStyle.value = {
+            top: `${rect.bottom + 4}px`,
+            left: `${rect.left}px`,
+            width: `${rect.width}px`,
+        };
+    };
+
+    onMounted(() => {
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+    });
+
+    onUnmounted(() => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+    });
 </script>
 
 <template>
     <Combobox v-model="proxyValue" @update:model-value="val => emit('update:modelValue', val)" as="div" class="w-full"
-        :multiple="multiple" :nullable="nullable" :by="valueKey ? String(valueKey) : undefined">
+        :multiple="multiple" :nullable="nullable" :by="valueKey ? String(valueKey) : undefined" v-slot="{ open }">
         <template v-if="name">
             <template v-if="multiple && Array.isArray(proxyValue)">
                 <input v-for="(option, index) in proxyValue" type="hidden" :name="`${name}[]`"
@@ -113,7 +141,7 @@
                 <input type="hidden" :name="name" :value="getRawValue(proxyValue)" />
             </template>
         </template>
-        <div class="relative">
+        <div class="relative" ref="containerRef">
             <div :class="cn(
                 'relative flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-transparent px-3 py-1 shadow-xs transition-shadow dark:bg-input/30',
                 'focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]'
@@ -133,40 +161,53 @@
                     'flex-1 border-none bg-transparent p-0 text-sm outline-none placeholder:text-muted-foreground min-w-12.5 focus:ring-0',
                     !multiple && 'h-full w-full'
                 )" @change="query = $event.target.value"
+                    @focus="() => { updatePosition(); if (!open) buttonRef?.$el?.click(); }"
                     :display-value="(val) => multiple ? '' : getDisplayString(val as T)"
                     :placeholder="(!multiple || (Array.isArray(proxyValue) && proxyValue.length === 0)) ? placeholder : ''" />
 
-                <ComboboxButton class="ml-auto flex items-center pr-1 cursor-pointer">
+                <ComboboxButton ref="buttonRef" class="ml-auto flex items-center pr-1 cursor-pointer"
+                    @click="updatePosition">
                     <ChevronsUpDown class="h-4 w-4 text-muted-foreground/50" aria-hidden="true" />
                 </ComboboxButton>
             </div>
 
-            <TransitionRoot leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0"
-                @after-leave="query = ''">
-                <ComboboxOptions
-                    class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-white dark:bg-neutral-900 p-1 text-sm shadow-md outline-none">
+            <Teleport to="body">
+                <TransitionRoot leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    @after-leave="query = ''">
+                    <ComboboxOptions
+                        class="fixed z-9999 max-h-60 overflow-auto rounded-md border border-input bg-white dark:bg-neutral-900 p-1 text-sm shadow-md outline-none pointer-events-auto"
+                        :style="dropdownStyle" @pointerdown.stop>
 
-                    <div v-if="filteredOptions.length === 0" class="py-6 text-center text-sm text-muted-foreground">
-                        No results found.
-                    </div>
+                        <div v-if="filteredOptions.length === 0" class="py-6 text-center text-sm text-muted-foreground">
+                            No results found.
+                        </div>
 
-                    <ComboboxOption v-for="(option, index) in filteredOptions" :key="getOptionKey(option, index)"
-                        :value="option" v-slot="{ selected, active }">
-                        <li :class="cn(
-                            'relative flex w-full select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors cursor-pointer',
-                            active || selected ? 'bg-accent text-accent-foreground' : 'text-foreground'
-                        )">
-                            <span v-if="selected" class="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                                <Check class="h-4 w-4" />
-                            </span>
+                        <ComboboxOption v-for="(option, index) in filteredOptions" :key="getOptionKey(option, index)"
+                            :value="option" v-slot="{ selected, active }">
+                            <li :class="cn(
+                                'relative flex w-full select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors cursor-pointer',
+                                active || selected ? 'bg-accent text-accent-foreground' : 'text-foreground'
+                            )">
+                                <span v-if="selected"
+                                    class="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                                    <Check class="h-4 w-4" />
+                                </span>
 
-                            <span :class="cn('block truncate', selected ? 'font-medium' : 'font-normal')">
-                                {{ getDisplayString(option) }}
-                            </span>
-                        </li>
-                    </ComboboxOption>
-                </ComboboxOptions>
-            </TransitionRoot>
+                                <span :class="cn('block truncate', selected ? 'font-medium' : 'font-normal')">
+                                    {{ getDisplayString(option) }}
+                                </span>
+
+                                <template v-if="badgeFunction">
+                                    <span v-if="badgeFunction(option) as Badge | null" class="ml-auto shrink-0 pl-3">
+                                        <span class="inline-block h-2 w-2 rounded-full"
+                                            :style="{ backgroundColor: (badgeFunction(option) as Badge).color }"></span>
+                                    </span>
+                                </template>
+                            </li>
+                        </ComboboxOption>
+                    </ComboboxOptions>
+                </TransitionRoot>
+            </Teleport>
         </div>
     </Combobox>
 </template>

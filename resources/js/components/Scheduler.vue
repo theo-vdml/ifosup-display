@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { router } from '@inertiajs/vue3';
     import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-    import { BookOpen, CalendarDays, DoorOpen, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
+    import { BookOpen, CalendarDays, DoorOpen, Layers, Maximize2, Minimize2, Minus, Plus } from 'lucide-vue-next';
     import PlaceholderPattern from './PlaceholderPattern.vue';
     import { DerivedTheme, useThemeDerivation } from '@/composables/useThemeDerivation';
     import { useAppearance } from '@/composables/useAppearance';
@@ -11,6 +11,13 @@
     import SchedulerDateRangePicker from './SchedulerDateRangePicker.vue';
     import SchedulerAssignmentCard from './SchedulerAssignmentCard.vue';
     import SchedulerDragPreview from './SchedulerDragPreview.vue';
+    import SchedulerWeekPicker from './SchedulerWeekPicker.vue';
+    import Combobox from './Combobox.vue';
+    import {
+        Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+    } from '@/components/ui/dialog';
+    import { Button } from '@/components/ui/button';
+    import { Label } from '@/components/ui/label';
 
     interface SchedulerProps {
         fromDate?: string
@@ -121,8 +128,18 @@
 
     const periods: Array<{ key: AssignmentPeriod; label: string }> = [
         { key: 'morning', label: 'Matin' },
-        { key: 'afternoon', label: 'Apres-midi' },
+        { key: 'afternoon', label: 'Après-midi' },
         { key: 'evening', label: 'Soir' },
+    ];
+
+    const days = [
+        { value: 1, label: 'Lundi', short: 'L' },
+        { value: 2, label: 'Mardi', short: 'M' },
+        { value: 3, label: 'Mercredi', short: 'M' },
+        { value: 4, label: 'Jeudi', short: 'J' },
+        { value: 5, label: 'Vendredi', short: 'V' },
+        { value: 6, label: 'Samedi', short: 'S' },
+        { value: 7, label: 'Dimanche', short: 'D' },
     ];
 
     const buildDateKeys = (startDate: string, endDate: string) => {
@@ -880,6 +897,169 @@
     watch(isCoursePanelOpen, (isOpen) => {
         writeCookie(SCHEDULER_DRAWER_COOKIE, isOpen ? '1' : '0');
     });
+
+    // ── Bulk insert ──────────────────────────────────────────────────────────
+    const isBulkDialogOpen = ref(false);
+    const bulkStep = ref<1 | 2>(1);
+    const isBulkSubmitting = ref(false);
+    const bulkError = ref<string | null>(null);
+
+    const currentIsoWeek = (): string => {
+        const now = new Date();
+        const tmp = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        const week = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+        return `${tmp.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+    };
+
+    const bulkForm = ref({
+        course: null as Course | null,
+        room: null as Room | null,
+        day_of_week: 1 as number,
+        period: 'morning' as AssignmentPeriod,
+        start_week: currentIsoWeek(),
+        end_week: currentIsoWeek(),
+    });
+
+    type BulkExisting = {
+        id: number;
+        date: string;
+        room_id: number;
+        course: { id: number; name: string; code: string };
+    };
+
+    type BulkPreviewRow = {
+        date: string;
+        room: Room;
+        selected: boolean;
+    };
+
+    const previewExisting = ref<BulkExisting[]>([]);
+    const previewRows = ref<BulkPreviewRow[]>([]);
+
+    const previewDateFormatter = new Intl.DateTimeFormat('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+    });
+
+    const formatPreviewDate = (iso: string) => {
+        const [y, m, d] = iso.split('-').map(Number);
+        const s = previewDateFormatter.format(new Date(Date.UTC(y, m - 1, d)));
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
+    const getConflict = (date: string, roomId: number): BulkExisting | undefined =>
+        previewExisting.value.find(e => e.date === date && e.room_id === roomId);
+
+    const isSameCourse = (date: string, roomId: number): boolean => {
+        const conflict = getConflict(date, roomId);
+        return !!conflict && !!bulkForm.value.course && conflict.course.id === bulkForm.value.course.id;
+    };
+
+    const isRealConflict = (date: string, roomId: number): boolean =>
+        !!getConflict(date, roomId) && !isSameCourse(date, roomId);
+
+    const openBulkDialog = () => {
+        bulkError.value = null;
+        bulkStep.value = 1;
+        bulkForm.value = {
+            course: null,
+            room: null,
+            day_of_week: 1,
+            period: 'morning',
+            start_week: currentIsoWeek(),
+            end_week: currentIsoWeek(),
+        };
+        previewRows.value = [];
+        previewExisting.value = [];
+        isBulkDialogOpen.value = true;
+    };
+
+    const submitStep1 = async () => {
+        bulkError.value = null;
+        if (!bulkForm.value.course || !bulkForm.value.room) {
+            bulkError.value = 'Cours et local sont obligatoires.';
+            return;
+        }
+        if (bulkForm.value.end_week < bulkForm.value.start_week) {
+            bulkError.value = 'La semaine de fin doit être >= la semaine de début.';
+            return;
+        }
+        isBulkSubmitting.value = true;
+        try {
+            const res = await fetch('/scheduler/assignments/bulk/preview', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': getCsrfToken(),
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    course_id: bulkForm.value.course.id,
+                    room_id: bulkForm.value.room.id,
+                    day_of_week: bulkForm.value.day_of_week,
+                    period: bulkForm.value.period,
+                    start_week: bulkForm.value.start_week,
+                    end_week: bulkForm.value.end_week,
+                }),
+            });
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({})) as { message?: string };
+                throw new Error(json?.message ?? `Erreur ${res.status}`);
+            }
+            const payload = await res.json() as { dates: string[]; existing: BulkExisting[] };
+            previewExisting.value = payload.existing;
+            previewRows.value = payload.dates.map(date => ({
+                date,
+                room: bulkForm.value.room!,
+                selected: true,
+            }));
+            bulkError.value = null;
+            bulkStep.value = 2;
+        } catch (e: unknown) {
+            bulkError.value = e instanceof Error ? e.message : 'Une erreur est survenue.';
+        } finally {
+            isBulkSubmitting.value = false;
+        }
+    };
+
+    const submitBulk = async () => {
+        bulkError.value = null;
+        const selectedRows = previewRows.value.filter(r => r.selected);
+        if (selectedRows.length === 0) {
+            bulkError.value = 'Sélectionnez au moins une date.';
+            return;
+        }
+        isBulkSubmitting.value = true;
+        try {
+            const res = await fetch('/scheduler/assignments/bulk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': getCsrfToken(),
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    course_id: bulkForm.value.course!.id,
+                    period: bulkForm.value.period,
+                    rows: selectedRows.map(r => ({ date: r.date, room_id: r.room.id })),
+                }),
+            });
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({})) as { message?: string };
+                throw new Error(json?.message ?? `Erreur ${res.status}`);
+            }
+            isBulkDialogOpen.value = false;
+            router.reload({ only: ['assignments'] });
+        } catch (e: unknown) {
+            bulkError.value = e instanceof Error ? e.message : 'Une erreur est survenue.';
+        } finally {
+            isBulkSubmitting.value = false;
+        }
+    };
+    const selectedConflictCount = computed(() =>
+        previewRows.value.filter(r => r.selected && isRealConflict(r.date, r.room.id)).length
+    );
 </script>
 
 <template>
@@ -930,6 +1110,13 @@
                                 @click="toggleFullscreen">
                                 <Maximize2 v-if="!isFullscreen" class="h-3.5 w-3.5" />
                                 <Minimize2 v-else class="h-3.5 w-3.5" />
+                            </button>
+
+                            <button type="button"
+                                class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-300/80 bg-zinc-900 px-3 py-1.5 text-xs font-semibold tracking-wide text-zinc-100 transition-colors hover:bg-zinc-800 dark:border-zinc-600/80 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                                @click="openBulkDialog">
+                                <Layers class="h-3.5 w-3.5" />
+                                Insertion en masse
                             </button>
 
                             <button type="button"
@@ -1063,8 +1250,7 @@
                                     <div v-for="course in filteredCourses" :key="`course-${course.id}`" class="h-24">
                                         <SchedulerAssignmentCard :details="getCourseDetails(course)"
                                             :zoom="coursePanelCardZoom" :is-dragged="draggedCourseId === course.id"
-                                            :show-actions="false"
-                                            @dragstart="onCourseDragStart(course, $event)"
+                                            :show-actions="false" @dragstart="onCourseDragStart(course, $event)"
                                             @dragend="clearDragState()" />
                                     </div>
 
@@ -1096,5 +1282,202 @@
                 <SchedulerDragPreview :details="draggedCellDetails" :zoom="zoom" :width="dragPreviewWidth" />
             </div>
         </Teleport>
+
+        <!-- Bulk insert dialog -->
+        <Dialog v-model:open="isBulkDialogOpen">
+            <DialogContent class="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>
+                        {{ bulkStep === 1 ? 'Insertion en masse' : 'Confirmer les dates et locaux' }}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <!-- Step 1: configuration -->
+                <template v-if="bulkStep === 1">
+                    <div class="flex flex-col gap-5 py-2">
+                        <!-- Course -->
+                        <div class="flex flex-col gap-1.5">
+                            <Label>Cours</Label>
+                            <Combobox v-model="bulkForm.course" :options="courses"
+                                :display-function="(c: Course) => `${c.code} — ${c.name}`"
+                                placeholder="Sélectionner un cours…" :nullable="true" />
+                        </div>
+
+                        <!-- Default room -->
+                        <div class="flex flex-col gap-1.5">
+                            <Label>Local</Label>
+                            <Combobox v-model="bulkForm.room" :options="props.rooms"
+                                :display-function="(r: Room) => r.name" placeholder="Sélectionner un local…"
+                                :nullable="true" />
+                        </div>
+
+                        <!-- Day radio buttons -->
+                        <div class="flex flex-col gap-1.5">
+                            <Label>Jour</Label>
+                            <div class="flex gap-1.5">
+                                <button v-for="d in days" :key="d.value" type="button"
+                                    class="flex-1 rounded-md border py-2.5 text-sm font-bold transition-colors cursor-pointer"
+                                    :class="bulkForm.day_of_week === d.value
+                                        ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100'
+                                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100'"
+                                    @click="bulkForm.day_of_week = d.value">
+                                    {{ d.short }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Period radio buttons -->
+                        <div class="flex flex-col gap-1.5">
+                            <Label>Période</Label>
+                            <div class="flex gap-1.5">
+                                <button v-for="p in periods" :key="p.key" type="button"
+                                    class="flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors cursor-pointer"
+                                    :class="bulkForm.period === p.key
+                                        ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100'
+                                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100'"
+                                    @click="bulkForm.period = p.key">
+                                    {{ p.label }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Week range -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-1.5">
+                                <Label>Semaine de début</Label>
+                                <SchedulerWeekPicker v-model="bulkForm.start_week" />
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <Label>Semaine de fin</Label>
+                                <SchedulerWeekPicker v-model="bulkForm.end_week" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <p v-if="bulkError" class="mr-auto text-sm text-red-600 dark:text-red-400">{{ bulkError }}</p>
+                        <Button variant="outline" @click="isBulkDialogOpen = false"
+                            :disabled="isBulkSubmitting">Annuler</Button>
+                        <Button @click="submitStep1" :disabled="isBulkSubmitting">
+                            {{ isBulkSubmitting ? 'Chargement…' : 'Suivant →' }}
+                        </Button>
+                    </DialogFooter>
+                </template>
+
+                <!-- Step 2: preview & confirm -->
+                <template v-else>
+                    <div class="flex flex-col gap-3 py-2">
+                        <!-- Selection recap -->
+                        <div class="flex flex-wrap gap-2">
+                            <div
+                                class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                                <span
+                                    class="rounded bg-zinc-900 px-1.5 py-0.5 font-mono text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                                    {{ bulkForm.course?.code }}
+                                </span>
+                                <span class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{
+                                    bulkForm.course?.name }}</span>
+                            </div>
+                            <div
+                                class="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                                <span>📅</span>
+                                <span>{{days.find(d => d.value === bulkForm.day_of_week)?.label}}</span>
+                            </div>
+                            <div
+                                class="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                                <span>🕐</span>
+                                <span>{{periods.find(p => p.key === bulkForm.period)?.label}}</span>
+                            </div>
+                        </div>
+
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                            {{previewRows.filter(r => r.selected).length}} / {{ previewRows.length }} dates
+                            sélectionnées
+                        </p>
+
+                        <div class="max-h-105 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            <div v-for="(row, index) in previewRows" :key="row.date"
+                                class="flex items-center gap-3 border-b px-4 py-3 last:border-b-0 border-zinc-200 dark:border-zinc-700"
+                                :class="index % 2 === 0 ? 'bg-white dark:bg-zinc-900' : 'bg-zinc-50/60 dark:bg-zinc-800/30'">
+
+                                <!-- Checkbox -->
+                                <input type="checkbox" v-model="row.selected"
+                                    class="h-4 w-4 shrink-0 cursor-pointer rounded accent-zinc-800" />
+
+                                <!-- Date + status block -->
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                                        {{ formatPreviewDate(row.date) }}
+                                    </p>
+
+                                    <!-- Real conflict (different course) -->
+                                    <div v-if="isRealConflict(row.date, row.room.id)"
+                                        class="mt-1 flex items-center gap-1.5 text-xs">
+                                        <span
+                                            class="rounded bg-amber-100 px-1.5 py-0.5 font-mono font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                                            {{ getConflict(row.date, row.room.id)!.course.code }}
+                                        </span>
+                                        <span class="text-amber-600 dark:text-amber-400">
+                                            {{ getConflict(row.date, row.room.id)!.course.name }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Same course already here -->
+                                    <p v-else-if="isSameCourse(row.date, row.room.id)"
+                                        class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                                        Ce cours est déjà présent ici
+                                    </p>
+
+                                    <!-- Free -->
+                                    <p v-else class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                                        Ce local est libre
+                                    </p>
+                                </div>
+
+                                <!-- Per-row room override -->
+                                <div class="w-44 shrink-0">
+                                    <Combobox v-model="row.room" :options="props.rooms"
+                                        :display-function="(r: Room) => r.name"
+                                        :filter-function="(r: Room, q: string) => r.name.toLowerCase().includes(q.toLowerCase())"
+                                        :badge-function="(r: Room) => isRealConflict(row.date, r.id)
+                                            ? { label: 'Occupé', color: '#d97706' }
+                                            : isSameCourse(row.date, r.id)
+                                                ? { label: 'Déjà présent', color: '#a1a1aa' }
+                                                : { label: 'Libre', color: '#10b981' }" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <p v-if="selectedConflictCount > 0"
+                            class="text-right text-xs text-amber-600 dark:text-amber-400">
+                            {{ selectedConflictCount === 1 ?
+                                'Un cours existant sera remplacé, cette action est destructive.'
+                                : `${selectedConflictCount} cours existants seront remplacés, cette action est destructive.`
+                            }}
+                        </p>
+                        <div class="flex items-center justify-end gap-2">
+                            <p v-if="bulkError" class="mr-auto text-sm text-red-600 dark:text-red-400">{{ bulkError }}
+                            </p>
+                            <Button variant="outline" @click="bulkStep = 1; bulkError = null"
+                                :disabled="isBulkSubmitting">← Retour</Button>
+                            <Button @click="submitBulk"
+                                :disabled="isBulkSubmitting || previewRows.filter(r => r.selected).length === 0"
+                                :class="selectedConflictCount > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white border-transparent' : ''">
+                                {{isBulkSubmitting ? 'Insertion…' : (() => {
+                                    const total = previewRows.filter(r => r.selected).length;
+                                    const conflicts = selectedConflictCount;
+                                    const inserts = total - conflicts;
+                                    if (conflicts === 0) return `Insérer (${total})`;
+                                    if (inserts === 0) return `Remplacer (${conflicts})`;
+                                    return `Insérer (${inserts}) et Remplacer (${conflicts})`;
+                                })()}}
+                            </Button>
+                        </div>
+                    </div>
+                </template>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

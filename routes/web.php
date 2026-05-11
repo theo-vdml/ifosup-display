@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\GroupController;
-use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ScreenController;
@@ -20,10 +19,6 @@ Route::get('screen/data', [ScreenController::class, 'data'])->name('screen.data'
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-    Route::get('recurrences', [RecurrenceController::class, 'index'])->name('recurrences');
-    Route::post('recurrences', [RecurrenceController::class, 'store'])->name('recurrences.store');
-    Route::patch('recurrences/{recurrence}', [RecurrenceController::class, 'update'])->name('recurrences.update');
-    Route::delete('recurrences/{recurrence}', [RecurrenceController::class, 'destroy'])->name('recurrences.destroy');
     Route::resource('teachers', TeacherController::class);
     Route::resource('rooms', RoomController::class);
     Route::resource('groups', GroupController::class);
@@ -38,6 +33,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('schedule.assignments.update-status');
     Route::delete('scheduler/assignments/{assignment}', [ScheduleController::class, 'destroy'])
         ->name('schedule.assignments.destroy');
+    Route::post('scheduler/assignments/bulk/preview', [ScheduleController::class, 'bulkPreview'])
+        ->name('schedule.assignments.bulk.preview');
+    Route::post('scheduler/assignments/bulk', [ScheduleController::class, 'bulkStore'])
+        ->name('schedule.assignments.bulk');
 
     Route::get('screen/slides', [ScreenSlideController::class, 'index'])->name('screen.slides.index');
     Route::post('screen/slides', [ScreenSlideController::class, 'store'])->name('screen.slides.store');

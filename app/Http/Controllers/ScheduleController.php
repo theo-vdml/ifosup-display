@@ -12,7 +12,9 @@ use App\Models\Course;
 use App\Models\Room;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -130,6 +132,94 @@ class ScheduleController extends Controller
         return response()->json([
             'deleted' => true,
         ]);
+    }
+
+    public function bulkPreview(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'course_id'   => ['required', 'integer', 'exists:courses,id'],
+            'room_id'     => ['required', 'integer', 'exists:rooms,id'],
+            'day_of_week' => ['required', 'integer', 'min:1', 'max:7'],
+            'period'      => ['required', 'in:morning,afternoon,evening'],
+            'start_week'  => ['required', 'regex:/^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/'],
+            'end_week'    => ['required', 'regex:/^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/', 'gte:start_week'],
+        ]);
+
+        $rangeStart = $this->isoWeekToMonday($data['start_week']);
+        $rangeEnd   = $this->isoWeekToMonday($data['end_week'])->addDays(6);
+
+        $dayOffset       = ($data['day_of_week'] - $rangeStart->isoWeekday() + 7) % 7;
+        $firstOccurrence = $rangeStart->copy()->addDays($dayOffset);
+
+        $dates = [];
+        for ($cursor = $firstOccurrence; $cursor->lte($rangeEnd); $cursor->addWeek()) {
+            $dates[] = $cursor->toDateString();
+        }
+
+        if ($dates === []) {
+            return response()->json(['dates' => [], 'existing' => []]);
+        }
+
+        $existing = Assignment::query()
+            ->with('course:id,name,code')
+            ->whereIn('date', $dates)
+            ->where('period', $data['period'])
+            ->get()
+            ->map(fn($a) => [
+                'id'      => $a->id,
+                'date'    => $a->date->toDateString(),
+                'room_id' => $a->room_id,
+                'course'  => $a->course,
+            ]);
+
+        return response()->json(['dates' => $dates, 'existing' => $existing]);
+    }
+
+    public function bulkStore(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'course_id'      => ['required', 'integer', 'exists:courses,id'],
+            'period'         => ['required', 'in:morning,afternoon,evening'],
+            'rows'           => ['required', 'array', 'min:1'],
+            'rows.*.date'    => ['required', 'date_format:Y-m-d'],
+            'rows.*.room_id' => ['required', 'integer', 'exists:rooms,id'],
+        ]);
+
+        DB::transaction(function () use ($data): void {
+            $now = now();
+            foreach ($data['rows'] as $row) {
+                Assignment::query()
+                    ->where('room_id', $row['room_id'])
+                    ->whereDate('date', $row['date'])
+                    ->where('period', $data['period'])
+                    ->delete();
+
+                Assignment::query()->create([
+                    'course_id' => $data['course_id'],
+                    'room_id'   => $row['room_id'],
+                    'date'      => $row['date'],
+                    'period'    => $data['period'],
+                    'status'    => 'planned',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        });
+
+        return response()->json(['inserted' => count($data['rows'])]);
+    }
+
+    private function isoWeekToMonday(string $isoWeek): Carbon
+    {
+        preg_match('/^(\d{4})-W(\d{2})$/', $isoWeek, $matches);
+
+        $year = (int) $matches[1];
+        $week = (int) $matches[2];
+
+        $jan4          = Carbon::create($year, 1, 4, 0, 0, 0, 'UTC')->startOfDay();
+        $weekOneMonday = $jan4->copy()->subDays($jan4->isoWeekday() - 1);
+
+        return $weekOneMonday->addWeeks($week - 1);
     }
 
     private function slotIsOccupied(
