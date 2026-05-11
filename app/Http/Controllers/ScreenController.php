@@ -3,46 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assignment;
+use App\Models\ScreenSlide;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
 class ScreenController extends Controller
 {
-    private const WELCOME_SLIDE = [
-        'key' => 'welcome',
-        'type' => 'welcome',
-        'data' => [
-            'minimumDuration' => 5000,
-            'isReady' => true,
-        ],
-    ];
-
-    private const DEFAULT_SLIDES = [
-        [
-            'id' => 'schedule-opening',
-            'type' => 'schedule',
-        ],
-        [
-            'id' => 'campus-image',
-            'type' => 'image',
-            'data' => [
-                'duration' => 5000,
-                'src' => '/easter.jpg',
-            ],
-        ],
-        [
-            'id' => 'schedule-middle',
-            'type' => 'schedule',
-        ],
-        [
-            'id' => 'campus-video',
-            'type' => 'video',
-            'data' => [
-                'src' => '/easter.mp4',
-            ],
-        ],
-    ];
-
     private const PERIOD_TIMES = [
         'morning' => ['00:00:00', '12:30:00'],
         'afternoon' => ['12:30:00', '17:30:00'],
@@ -69,6 +35,8 @@ class ScreenController extends Controller
 
     public function data()
     {
+        ScreenSlide::ensureDefaultSlides();
+
         $timezone = (string) config('app.screen_timezone', 'Europe/Brussels');
         $now = now($timezone);
 
@@ -103,28 +71,59 @@ class ScreenController extends Controller
             })
             ->values();
 
-        $slides = collect(self::DEFAULT_SLIDES)
-            ->flatMap(function (array $slide) use ($periods) {
-                if ($slide['type'] !== 'schedule') {
+        $slides = ScreenSlide::query()
+            ->ordered()
+            ->get()
+            ->flatMap(function (ScreenSlide $slide) use ($periods) {
+                if ($slide->type === ScreenSlide::TYPE_WELCOME) {
                     return [[
-                        'key' => $slide['id'],
-                        'type' => $slide['type'],
-                        'data' => $slide['data'],
+                        'key' => sprintf('welcome-%d', $slide->id),
+                        'type' => 'welcome',
+                        'data' => [
+                            'minimumDuration' => 5000,
+                            'isReady' => true,
+                            'motd' => $slide->motd,
+                        ],
                     ]];
                 }
 
-                return $periods->map(function (array $period) use ($slide) {
-                    return [
-                        'key' => $slide['id'] . '-' . $period['key'],
-                        'type' => 'schedule',
+                if ($slide->type === ScreenSlide::TYPE_SCHEDULE) {
+                    return $periods->map(function (array $period) use ($slide) {
+                        return [
+                            'key' => sprintf('schedule-%d-%s', $slide->id, $period['key']),
+                            'type' => 'schedule',
+                            'data' => [
+                                'title' => $period['title'],
+                                'rows' => $period['rows'],
+                            ],
+                        ];
+                    });
+                }
+
+                if ($slide->type === ScreenSlide::TYPE_IMAGE && $slide->imageUrl()) {
+                    return [[
+                        'key' => sprintf('image-%d', $slide->id),
+                        'type' => 'image',
                         'data' => [
-                            'title' => $period['title'],
-                            'rows' => $period['rows'],
+                            'duration' => $slide->duration ?? 5000,
+                            'src' => $slide->imageUrl(),
                         ],
-                    ];
-                });
+                    ]];
+                }
+
+                if ($slide->type === ScreenSlide::TYPE_VIDEO && $slide->videoUrl()) {
+                    return [[
+                        'key' => sprintf('video-%d', $slide->id),
+                        'type' => 'video',
+                        'data' => [
+                            'duration' => $slide->duration,
+                            'src' => $slide->videoUrl(),
+                        ],
+                    ]];
+                }
+
+                return [];
             })
-            ->prepend(self::WELCOME_SLIDE)
             ->values();
 
         return response()->json([

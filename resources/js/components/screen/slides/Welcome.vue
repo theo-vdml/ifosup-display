@@ -6,6 +6,7 @@
 
     const minimumDuration = computed(() => props.data?.minimumDuration ?? props.data?.duration ?? 5000);
     const isReady = computed(() => props.data?.isReady ?? true);
+    const motd = computed(() => props.data?.motd ?? null);
     const minimumDurationElapsed = ref(false);
 
     let hasEmitted = false;
@@ -45,7 +46,7 @@
 </script>
 
 <template>
-    <div class="w-screen h-screen bg-[#1e2d55] font-sans overflow-hidden flex items-center justify-center">
+    <div class="w-screen h-screen bg-[#1e2d55] font-sans overflow-hidden flex flex-col items-center justify-center">
 
         <!-- Content -->
         <div class="flex flex-col items-center gap-12 z-10">
@@ -60,5 +61,9 @@
                 </div>
             </div>
         </div>
+
+        <p v-if="motd" class="absolute bottom-12 max-w-4xl px-8 text-center text-2xl font-semibold text-white/95">
+            {{ motd }}
+        </p>
     </div>
 </template>

@@ -42,6 +42,7 @@
     interface WelcomeSlideData {
         minimumDuration?: number;
         isReady?: boolean;
+        motd?: string | null;
     }
 
     interface ScheduleSlideData {

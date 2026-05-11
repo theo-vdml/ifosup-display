@@ -6,6 +6,7 @@ use App\Http\Controllers\RecurrenceController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ScreenController;
+use App\Http\Controllers\ScreenSlideController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -37,6 +38,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('schedule.assignments.update-status');
     Route::delete('scheduler/assignments/{assignment}', [ScheduleController::class, 'destroy'])
         ->name('schedule.assignments.destroy');
+
+    Route::get('screen/slides', [ScreenSlideController::class, 'index'])->name('screen.slides.index');
+    Route::post('screen/slides', [ScreenSlideController::class, 'store'])->name('screen.slides.store');
+    Route::patch('screen/slides/order', [ScreenSlideController::class, 'reorder'])->name('screen.slides.reorder');
+    Route::patch('screen/slides/{screenSlide}', [ScreenSlideController::class, 'update'])->name('screen.slides.update');
+    Route::delete('screen/slides/{screenSlide}', [ScreenSlideController::class, 'destroy'])->name('screen.slides.destroy');
 });
 
 
