@@ -66,13 +66,8 @@
                             </Link>
                         </Button>
                         <Button @mousedown="createAnother = false" :disabled="processing">Enregistrer</Button>
-                        <Button
-                            v-if="!isEdit"
-                            type="submit"
-                            variant="outline"
-                            @mousedown="createAnother = true"
-                            :disabled="processing"
-                        >Créer et créer un autre</Button>
+                        <Button v-if="!isEdit" type="submit" variant="outline" @mousedown="createAnother = true"
+                            :disabled="processing">Créer et créer un autre</Button>
                     </div>
                 </Form>
             </div>
