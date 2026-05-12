@@ -653,7 +653,7 @@
                                     <td class="px-4 py-1.5">{{ c.local }}</td>
                                     <td class="px-4 py-1.5 font-mono text-orange-600 line-through opacity-75">{{
                                         c.course_current ?? '—'
-                                        }}</td>
+                                    }}</td>
                                     <td class="px-4 py-1.5 font-mono font-semibold">{{ c.course_new }}</td>
                                 </tr>
                             </tbody>

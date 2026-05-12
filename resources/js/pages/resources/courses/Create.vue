@@ -38,13 +38,13 @@
                 <Label for="teacher">Enseignant</Label>
                 <Combobox :options="props.teachers" placeholder="Séléctionner un enseignant" name="teacher_id"
                     valueKey="id" :displayFunction="(opt) => opt.name" />
-                <InputError class="mt-2" :message="errors.teacher" />
+                <InputError class="mt-2" :message="errors.teacher_id" />
             </div>
             <div class="grid gap-2">
                 <Label for="group">Sections</Label>
                 <Combobox :options="props.groups" multiple placeholder="Séléctionner le(s) section(s)" name="groups"
                     valueKey="id" :displayFunction="(opt) => opt.name" />
-                <InputError class="mt-2" :message="errors.group" />
+                <InputError class="mt-2" :message="errors.groups" />
             </div>
         </template>
     </ResourceFormLayout>

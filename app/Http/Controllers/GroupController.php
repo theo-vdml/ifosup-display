@@ -37,6 +37,10 @@ class GroupController extends Controller
 
         $group = Group::create($validated);
 
+        if ($request->boolean('_create_another')) {
+            return redirect()->route('groups.create');
+        }
+
         return redirect()->route('groups.show', $group);
     }
 

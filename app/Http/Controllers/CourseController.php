@@ -49,6 +49,10 @@ class CourseController extends Controller
             $course->groups()->sync($validated['groups']);
         }
 
+        if ($request->boolean('_create_another')) {
+            return redirect()->route('courses.create');
+        }
+
         return redirect()->route('courses.show', $course);
     }
 

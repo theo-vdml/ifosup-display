@@ -34,6 +34,10 @@ class UserController extends Controller
 
         $user = User::create($validated);
 
+        if ($request->boolean('_create_another')) {
+            return redirect()->route('admin.users.create');
+        }
+
         return redirect()->route('admin.users.show', $user);
     }
 

@@ -48,7 +48,7 @@
                             <span
                                 class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
                                 <User class="h-3 w-3 mt-px" />
-                                {{ course.teacher?.name }}
+                                {{ course.teacher?.name ?? '—' }}
                             </span>
                             <span
                                 class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">

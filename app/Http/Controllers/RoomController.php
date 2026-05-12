@@ -39,6 +39,10 @@ class RoomController extends Controller
 
         $room = Room::create($validated);
 
+        if ($request->boolean('_create_another')) {
+            return redirect()->route('rooms.create');
+        }
+
         return redirect()->route('rooms.show', $room);
     }
 

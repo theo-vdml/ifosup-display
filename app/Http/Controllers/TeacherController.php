@@ -39,6 +39,10 @@ class TeacherController extends Controller
 
         $teacher = Teacher::create($validated);
 
+        if ($request->boolean('_create_another')) {
+            return redirect()->route('teachers.create');
+        }
+
         return redirect()->route('teachers.show', $teacher);
     }
 
