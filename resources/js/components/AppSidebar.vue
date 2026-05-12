@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { Link } from '@inertiajs/vue3';
-    import { BookOpen, GraduationCap, DoorOpen, UsersRound, CalendarRange, Monitor, ShieldEllipsis, Tv } from 'lucide-vue-next';
+    import { BookOpen, GraduationCap, DoorOpen, UsersRound, CalendarRange, Monitor, ShieldEllipsis, Tv, FileSpreadsheet } from 'lucide-vue-next';
     import AppLogo from '@/components/AppLogo.vue';
     import NavFooter from '@/components/NavFooter.vue';
     import NavMain from '@/components/NavMain.vue';
@@ -49,6 +49,11 @@
             title: 'Planning',
             href: schedule(),
             icon: CalendarRange,
+        },
+        {
+            title: 'Import Excel',
+            href: '/scheduler/import',
+            icon: FileSpreadsheet,
         },
         {
             title: 'Slides écran',
