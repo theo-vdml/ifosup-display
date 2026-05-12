@@ -190,19 +190,23 @@
         selectedCourses.value = checked ? summary.value.known_courses.map((c) => c.code) : [];
     }
 
-    function roomSortKey(room: string): number {
-        const n = parseInt(room, 10);
-        if (isNaN(n)) return Infinity;
-        // Negative rooms (sous-sol) come first, sorted by absolute value ascending.
-        // Key trick: abs(n) - large_offset → all negatives < all positives in sort.
-        return n < 0 ? Math.abs(n) - 100000 : n;
+    function compareRooms(a: string, b: string): number {
+        const isInt = (s: string) => /^-?\d+$/.test(s);
+        const aInt = isInt(a), bInt = isInt(b);
+        const na = parseInt(a, 10), nb = parseInt(b, 10);
+        const group = (s: string, n: number) => !isInt(s) ? 2 : n < 0 ? 0 : 1;
+        const ga = group(a, na), gb = group(b, nb);
+        if (ga !== gb) return ga - gb;
+        if (ga === 0) return Math.abs(na) - Math.abs(nb); // -1, -2, -3…
+        if (ga === 1) return na - nb;                      // 1, 2, 3…
+        return a.localeCompare(b);                         // alphabétique
     }
 
     const allRooms = computed(() => {
         if (!summary.value) return [];
         return [...summary.value.existing_rooms, ...summary.value.new_rooms]
             .map(String)
-            .sort((a, b) => roomSortKey(a) - roomSortKey(b));
+            .sort(compareRooms);
     });
 
     const allCoursesSelected = computed(

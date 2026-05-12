@@ -158,6 +158,22 @@
     const courses = computed(() => {
         return [...props.courses].sort((a, b) => a.code.localeCompare(b.code, 'fr'));
     });
+
+    const compareRooms = (a: string, b: string): number => {
+        const isInt = (s: string) => /^-?\d+$/.test(s);
+        const na = parseInt(a, 10), nb = parseInt(b, 10);
+        const group = (s: string, n: number) => !isInt(s) ? 2 : n < 0 ? 0 : 1;
+        const ga = group(a, na), gb = group(b, nb);
+        if (ga !== gb) return ga - gb;
+        if (ga === 0) return Math.abs(na) - Math.abs(nb);
+        if (ga === 1) return na - nb;
+        return a.localeCompare(b);
+    };
+
+    const sortedRooms = computed(() =>
+        [...props.rooms].sort((a, b) => compareRooms(a.name, b.name)),
+    );
+
     const courseSearchQuery = ref('');
 
     const normalizeSearchText = (value: string) => {
@@ -1160,7 +1176,7 @@
                             <div class="shrink-0 overflow-hidden border-r border-zinc-300/70 dark:border-zinc-700/70"
                                 :style="{ width: roomColWidth }">
                                 <div ref="sidebarTrackRef" class="min-h-full transform-gpu will-change-transform">
-                                    <div v-for="room in rooms" :key="`room-${room.id}`"
+                                    <div v-for="room in sortedRooms" :key="`room-${room.id}`"
                                         class="border-b border-zinc-200/70 bg-zinc-100/60 px-4 py-2.5 text-left font-medium text-zinc-500 dark:border-zinc-700/70 dark:bg-zinc-900/55 dark:text-zinc-300 flex items-center"
                                         :style="{ height: cellHeight }">
                                         {{ room.name }}
@@ -1171,7 +1187,7 @@
                             <div ref="gridScrollerRef" class="min-h-0 min-w-0 flex-1 overflow-auto"
                                 @scroll="onGridScroll">
                                 <div class="min-w-full">
-                                    <div v-for="room in rooms" :key="`row-${room.id}`" class="flex min-w-full">
+                                    <div v-for="room in sortedRooms" :key="`row-${room.id}`" class="flex min-w-full">
                                         <template v-for="date in dates" :key="`${room.id}-${date.key}`">
                                             <div v-for="period in periods" :key="`${room.id}-${date.key}-${period.key}`"
                                                 class="group relative flex-1 border-r border-b border-zinc-100 bg-white px-0 py-0 transition-colors dark:border-zinc-800 dark:bg-zinc-950"

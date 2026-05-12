@@ -26,6 +26,22 @@
 
     const title = computed(() => props.data?.title ?? 'Planning des cours');
 
+    function compareRooms(a, b) {
+        const isInt = (s) => /^-?\d+$/.test(s);
+        const na = parseInt(a, 10), nb = parseInt(b, 10);
+        const group = (s, n) => !isInt(s) ? 2 : n < 0 ? 0 : 1;
+        const ga = group(a, na), gb = group(b, nb);
+        if (ga !== gb) return ga - gb;
+        if (ga === 0) return Math.abs(na) - Math.abs(nb);
+        if (ga === 1) return na - nb;
+        return a.localeCompare(b);
+    }
+
+    const sortedRows = computed(() => {
+        const rows = props.data?.rows ?? [];
+        return [...rows].sort((a, b) => compareRooms(a.room?.name ?? '', b.room?.name ?? ''));
+    });
+
     // Auto-scroll via transform
     const outerContainer = ref(null);
     const innerContent = ref(null);
@@ -112,7 +128,7 @@
         </div>
 
         <!-- Column headers -->
-        <div v-if="data.rows?.length" class="grid grid-cols-[2fr_2fr_2fr_1fr] gap-6 px-14 py-6 shrink-0 bg-[#f2ae35]">
+        <div v-if="sortedRows.length" class="grid grid-cols-[2fr_2fr_2fr_1fr] gap-6 px-14 py-6 shrink-0 bg-[#f2ae35]">
             <span class="text-black text-lg font-black uppercase tracking-widest">Cours</span>
             <span class="text-black text-lg font-black uppercase tracking-widest">Professeur</span>
             <span class="text-black text-lg font-black uppercase tracking-widest">Sections</span>
@@ -123,7 +139,7 @@
         <div class="flex-1 overflow-hidden min-h-0">
             <div ref="outerContainer" class="h-full overflow-hidden relative">
                 <div ref="innerContent" :style="{ transform: `translateY(-${translateY}px)` }">
-                    <div v-for="(row, index) in data.rows" :key="row.id ?? index"
+                    <div v-for="(row, index) in sortedRows" :key="row.id ?? index"
                         class="grid grid-cols-[2fr_2fr_2fr_1fr] gap-6 items-center py-8 px-14 border-b border-gray-300"
                         :class="row.status === 'cancelled' ? 'bg-red-50' : row.status === 'late' ? 'bg-orange-50' : index % 2 === 0 ? 'bg-white' : ''">
                         <!-- Course -->
@@ -167,7 +183,7 @@
                     </div>
 
                     <!-- Empty state -->
-                    <div v-if="!data.rows?.length" class="flex flex-col items-center justify-center gap-6"
+                    <div v-if="!sortedRows.length" class="flex flex-col items-center justify-center gap-6"
                         :style="{ height: outerContainer?.offsetHeight + 'px' }">
                         <img src="/empty.svg" class="size-96 opacity-60" alt="">
                         <p class="text-gray-400 text-2xl font-semibold">Aucun cours prévu pour le moment.</p>

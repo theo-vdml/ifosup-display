@@ -14,10 +14,25 @@
     const routes = useResourceRoutes(null, actions);
     const query = ref('');
 
+    function compareRooms(a: string, b: string): number {
+        const isInt = (s: string) => /^-?\d+$/.test(s);
+        const na = parseInt(a, 10), nb = parseInt(b, 10);
+        const group = (s: string, n: number) => !isInt(s) ? 2 : n < 0 ? 0 : 1;
+        const ga = group(a, na), gb = group(b, nb);
+        if (ga !== gb) return ga - gb;
+        if (ga === 0) return Math.abs(na) - Math.abs(nb);
+        if (ga === 1) return na - nb;
+        return a.localeCompare(b);
+    }
+
+    const sortedRooms = computed(() =>
+        [...props.rooms].sort((a, b) => compareRooms(a.name, b.name)),
+    );
+
     const filteredRooms = computed(() => {
         const q = query.value.trim().toLowerCase();
-        if (!q) return props.rooms;
-        return props.rooms.filter((r) => r.name.toLowerCase().includes(q));
+        if (!q) return sortedRooms.value;
+        return sortedRooms.value.filter((r) => r.name.toLowerCase().includes(q));
     });
 
     const getAvatarUrl = (name: string) => {
