@@ -1,6 +1,11 @@
 <script setup lang="ts">
-    import { Head, Link } from '@inertiajs/vue3';
-    import { login } from '@/routes';
+    import { Head, Link, usePage } from '@inertiajs/vue3';
+    import { computed } from 'vue';
+    import { login, schedule } from '@/routes';
+
+    const page = usePage();
+    const isLoggedIn = computed(() => !!(page.props.auth as any)?.user);
+    const destination = computed(() => isLoggedIn.value ? schedule.url() : login().url);
 </script>
 
 <template>
@@ -30,10 +35,10 @@
                     style="color: rgba(242,174,53,0.6);">
                     Écran TV
                 </Link>
-                <Link :href="login()"
+                <Link :href="destination"
                     class="inline-flex items-center gap-2 px-5 py-2 rounded text-sm font-bold uppercase tracking-wider border-2 transition-all duration-200 hover:opacity-80"
                     style="border-color: #f2ae35; color: #f2ae35;">
-                    Se connecter
+                    {{ isLoggedIn ? 'Ouvrir' : 'Se connecter' }}
                 </Link>
             </div>
         </header>
@@ -64,7 +69,7 @@
                 </div>
 
                 <!-- CTA -->
-                <Link :href="login()"
+                <Link :href="destination"
                     class="inline-flex items-center gap-3 px-8 py-4 rounded-lg text-base font-black uppercase tracking-widest transition-all duration-200 hover:brightness-110 shadow-lg"
                     style="background-color: #f2ae35; color: #1e2d55;">
                     Accéder à la plateforme
