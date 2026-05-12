@@ -35,11 +35,6 @@
                         <h2 class="text-2xl font-semibold tracking-tight">{{ group.name }}</h2>
                         <div class="flex flex-wrap gap-2 text-xs">
                             <span
-                                class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-1">
-                                <HashIcon class="h-3 w-3 mt-px" />
-                                {{ group.id }}
-                            </span>
-                            <span
                                 class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
                                 <BookOpenIcon class="h-3 w-3 mt-px" />
                                 {{ courses.length }} cours

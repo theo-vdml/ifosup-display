@@ -20,17 +20,11 @@
         type="Locaux" :routes="routes">
         <section
             class="overflow-hidden rounded-2xl border border-sidebar-border/60 bg-linear-to-br from-zinc-100 via-card to-zinc-200/60 dark:from-zinc-900 dark:via-zinc-900/90 dark:to-zinc-800/50">
-            <div class="flex items-start gap-6 p-6">
+            <div class="flex items-center gap-6 p-6">
                 <img :src="getAvatarUrl(room.name)" :alt="room.name"
                     class="h-20 w-20 shrink-0 rounded-2xl border border-sidebar-border/80 bg-white/70 p-1 dark:bg-zinc-800/70" />
                 <div class="flex flex-col gap-3">
                     <h2 class="text-2xl font-semibold tracking-tight">{{ room.name }}</h2>
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        <span class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-1">
-                            <HashIcon class="h-3 w-3 mt-px" />
-                            {{ room.id }}
-                        </span>
-                    </div>
                 </div>
             </div>
         </section>

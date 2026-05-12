@@ -1,14 +1,27 @@
 <script setup lang="ts">
     import actions from '@/actions/App/Http/Controllers/CourseController';
     import ResourceListItem from '@/components/resources/ResourceListItem.vue';
+    import ResourceListItemData from '@/components/resources/ResourceListItemData.vue';
     import { useResourceRoutes } from '@/composables/useResourceRoutes';
     import ResourceIndexLayout from '@/layouts/resources/ResourceIndexLayout.vue';
+    import { Input } from '@/components/ui/input';
+    import { Search } from 'lucide-vue-next';
+    import { ref, computed } from 'vue';
 
-    defineProps<{
+    const props = defineProps<{
         courses: Course[];
     }>();
 
     const routes = useResourceRoutes(null, actions);
+    const query = ref('');
+
+    const filteredCourses = computed(() => {
+        const q = query.value.trim().toLowerCase();
+        if (!q) return props.courses;
+        return props.courses.filter(
+            (c) => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q),
+        );
+    });
 
     const getAvatarUrl = (name: string) => {
         return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}`;
@@ -21,10 +34,18 @@
         <template #empty-action>Créer un cours</template>
         <template #create-action>Créer un cours</template>
 
+        <div class="relative mb-4 max-w-sm">
+            <Search class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+            <Input v-model="query" placeholder="Rechercher un cours…" class="pl-9" />
+        </div>
         <div class="grid gap-3">
-            <ResourceListItem v-for="course in courses" :key="course.id" :href="actions.show(course.id).url"
-                              :title="course.name" :image="getAvatarUrl(course.code)">
+            <ResourceListItem v-for="course in filteredCourses" :key="course.id" :href="actions.show(course.id).url"
+                :title="course.code" :image="getAvatarUrl(course.code)">
+                <ResourceListItemData>{{ course.name }}</ResourceListItemData>
             </ResourceListItem>
+            <p v-if="filteredCourses.length === 0 && query" class="text-muted-foreground py-6 text-center text-sm">
+                Aucun résultat pour « {{ query }} ».
+            </p>
         </div>
     </ResourceIndexLayout>
 </template>

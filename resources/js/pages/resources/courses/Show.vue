@@ -6,7 +6,7 @@
     import ResourceListItemData from '@/components/resources/ResourceListItemData.vue';
     import ResourceShowLayout from '@/layouts/resources/ResourceShowLayout.vue';
     import { useResourceRoutes } from '@/composables/useResourceRoutes';
-    import { AsteriskIcon, HashIcon, Layers3Icon, UsersRoundIcon } from 'lucide-vue-next';
+    import { AsteriskIcon, HashIcon, Layers3Icon, User, UsersRoundIcon } from 'lucide-vue-next';
 
     const props = defineProps<{
         course: Course;
@@ -41,14 +41,14 @@
                         <h2 class="text-2xl font-semibold tracking-tight">{{ course.name }}</h2>
                         <div class="flex flex-wrap gap-2 text-xs">
                             <span
-                                class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-1">
+                                class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
                                 <HashIcon class="h-3 w-3 mt-px" />
-                                {{ course.id }}
+                                {{ course.code }}
                             </span>
                             <span
                                 class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">
-                                <AsteriskIcon class="h-3 w-3 mt-px" />
-                                {{ course.code }}
+                                <User class="h-3 w-3 mt-px" />
+                                {{ course.teacher?.name }}
                             </span>
                             <span
                                 class="rounded-full border border-sidebar-border/70 px-2.5 py-1 flex items-center gap-2">

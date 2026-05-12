@@ -3,12 +3,22 @@
     import { useResourceRoutes } from '@/composables/useResourceRoutes';
     import ResourceIndexLayout from '@/layouts/resources/ResourceIndexLayout.vue';
     import ResourceListItem from '@/components/resources/ResourceListItem.vue';
+    import { Input } from '@/components/ui/input';
+    import { Search } from 'lucide-vue-next';
+    import { ref, computed } from 'vue';
 
     const props = defineProps<{
         rooms: Room[];
     }>();
 
-    const routes = useResourceRoutes(null, actions)
+    const routes = useResourceRoutes(null, actions);
+    const query = ref('');
+
+    const filteredRooms = computed(() => {
+        const q = query.value.trim().toLowerCase();
+        if (!q) return props.rooms;
+        return props.rooms.filter((r) => r.name.toLowerCase().includes(q));
+    });
 
     const getAvatarUrl = (name: string) => {
         return `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(name)}`;
@@ -21,10 +31,17 @@
         <template #empty-action>Créer un local</template>
         <template #create-action>Créer un local</template>
 
+        <div class="relative mb-4 max-w-sm">
+            <Search class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+            <Input v-model="query" placeholder="Rechercher un local…" class="pl-9" />
+        </div>
         <div class="grid gap-3">
-            <ResourceListItem v-for="room in rooms" :key="room.id" :href="actions.show(room.id).url" :title="room.name"
-                :image="getAvatarUrl(room.name)">
+            <ResourceListItem v-for="room in filteredRooms" :key="room.id" :href="actions.show(room.id).url"
+                :title="room.name" :image="getAvatarUrl(room.name)">
             </ResourceListItem>
+            <p v-if="filteredRooms.length === 0 && query" class="text-muted-foreground py-6 text-center text-sm">
+                Aucun résultat pour « {{ query }} ».
+            </p>
         </div>
     </ResourceIndexLayout>
 </template>
