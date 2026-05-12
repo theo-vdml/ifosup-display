@@ -5,6 +5,7 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SchedulerParserController;
 use App\Http\Controllers\ScreenController;
 use App\Http\Controllers\ScreenSlideController;
 use App\Http\Controllers\TeacherController;
@@ -42,17 +43,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('screen/slides/{screenSlide}', [ScreenSlideController::class, 'destroy'])->name('screen.slides.destroy');
 
     Route::prefix('admin')->name('admin.')->group(function () {
-        Route::resource('users', AdminUserController::class)->names([
-            'index'   => 'users.index',
-            'create'  => 'users.create',
-            'store'   => 'users.store',
-            'show'    => 'users.show',
-            'edit'    => 'users.edit',
-            'update'  => 'users.update',
-            'destroy' => 'users.destroy',
-        ]);
+        Route::resource('users', AdminUserController::class);
     });
 });
 
+Route::get('/debug-excel', [SchedulerParserController::class, 'debug']);
 
 require __DIR__ . '/settings.php';
