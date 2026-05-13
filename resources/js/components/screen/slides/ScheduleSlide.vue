@@ -49,49 +49,55 @@
     const scrollProgress = ref(0);
     const barWidth = ref(100);
 
-    const SPEED = 0.6;
-    const INITIAL_PAUSE_FRAMES = 300;  // 5s at 60fps
-    const BOTTOM_PAUSE_FRAMES = 300;  // 5s at 60fps
-    const NO_SCROLL_FRAMES = 600;     // 10s at 60fps
+    const SPEED = 36;              // px/s  (≈ 0.6 px/frame at 60 fps)
+    const INITIAL_PAUSE_MS = 5000;
+    const BOTTOM_PAUSE_MS = 5000;
+    const NO_SCROLL_MS = 10000;
 
     // phases: 'initial-wait' → next               (no content)
     //         'initial-wait' → 'no-scroll-wait' → next  (content, no scroll)
     //         'initial-wait' → 'scrolling' → 'bottom-wait' → next  (scroll)
     let phase = 'initial-wait';
-    let phaseFrames = INITIAL_PAUSE_FRAMES;
+    let phaseElapsed = 0;
+    let lastTimestamp = null;
     let animationId = null;
     let timeIntervalId = null;
 
-    function animate() {
+    function animate(timestamp) {
         const outer = outerContainer.value;
         const inner = innerContent.value;
         if (!outer || !inner) { animationId = requestAnimationFrame(animate); return; }
+
+        const delta = lastTimestamp !== null ? timestamp - lastTimestamp : 0;
+        lastTimestamp = timestamp;
 
         const maxTranslate = inner.offsetHeight - outer.offsetHeight;
         barWidth.value = outer.offsetHeight / inner.offsetHeight * 100;
 
         if (phase === 'initial-wait') {
-            if (--phaseFrames <= 0) {
+            phaseElapsed += delta;
+            if (phaseElapsed >= INITIAL_PAUSE_MS) {
                 if (!props.data?.rows?.length) { emit('next'); return; }
+                phaseElapsed = 0;
                 if (maxTranslate > 0) {
                     phase = 'scrolling';
                 } else {
                     phase = 'no-scroll-wait';
-                    phaseFrames = NO_SCROLL_FRAMES;
                 }
             }
         } else if (phase === 'scrolling') {
-            translateY.value = Math.min(translateY.value + SPEED, maxTranslate);
+            translateY.value = Math.min(translateY.value + SPEED * delta / 1000, maxTranslate);
             scrollProgress.value = translateY.value / maxTranslate;
             if (translateY.value >= maxTranslate) {
                 phase = 'bottom-wait';
-                phaseFrames = BOTTOM_PAUSE_FRAMES;
+                phaseElapsed = 0;
             }
-        } else if (phase === 'bottom-wait' || phase === 'no-scroll-wait') {
-            if (--phaseFrames <= 0) {
-                emit('next');
-                return;
-            }
+        } else if (phase === 'bottom-wait') {
+            phaseElapsed += delta;
+            if (phaseElapsed >= BOTTOM_PAUSE_MS) { emit('next'); return; }
+        } else if (phase === 'no-scroll-wait') {
+            phaseElapsed += delta;
+            if (phaseElapsed >= NO_SCROLL_MS) { emit('next'); return; }
         }
 
         animationId = requestAnimationFrame(animate);

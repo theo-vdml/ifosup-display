@@ -5,6 +5,17 @@
             <component v-if="currentSlide" :is="components[currentSlide.type]" :key="currentSlideKey"
                 :data="currentSlide.data" @next="goToNextSlide" />
         </transition>
+
+        <button
+            v-if="!isFullscreen"
+            @click="enterFullscreen"
+            class="absolute top-4 right-4 z-50 bg-white/20 hover:bg-white/40 text-white rounded-xl p-3 transition-colors cursor-pointer"
+            title="Plein écran"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5-5-5m5 5v-4m0 4h-4" />
+            </svg>
+        </button>
     </div>
 </template>
 
@@ -87,6 +98,16 @@
         video: defineAsyncComponent(() => import('./slides/VideoSlide.vue')),
         schedule: defineAsyncComponent(() => import('./slides/ScheduleSlide.vue')),
     };
+
+    const isFullscreen = ref(false);
+
+    function enterFullscreen() {
+        document.documentElement.requestFullscreen().catch(console.error);
+    }
+
+    function onFullscreenChange() {
+        isFullscreen.value = !!document.fullscreenElement;
+    }
 
     const slides = ref<KioskSlide[]>([FALLBACK_WELCOME_SLIDE]);
     const isRefreshing = ref(false);
@@ -296,6 +317,8 @@
     }
 
     onMounted(async () => {
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+
         const cachedPayload = readCachedPayload();
 
         if (cachedPayload) {
@@ -306,6 +329,8 @@
     });
 
     onUnmounted(() => {
+        document.removeEventListener('fullscreenchange', onFullscreenChange);
+
         for (const objectUrl of mediaObjectUrls.values()) {
             URL.revokeObjectURL(objectUrl);
         }
