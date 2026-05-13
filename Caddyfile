@@ -1,19 +1,34 @@
 {
-	frankenphp
-	order php_server before file_server
+	admin off
+	persist_config off
+	auto_https off
+
+  {$CADDY_GLOBAL_OPTIONS}
+
+  log {
+    format json
+    output stderr
+    level DEBUG
+  }
+
+	frankenphp {
+		{$FRANKENPHP_CONFIG}
+	}
 }
 
-# On écoute sur le port 80 explicitement
-:80 {
-	# Racine du projet
-	root * public
+{$CADDY_EXTRA_CONFIG}
 
-	# Compression
-	encode zstd gzip
+:{$PORT:80} {
+    root * /app/public
 
-	# Exécution PHP
+	encode zstd br gzip
+
+	file_server {
+		hide .git
+		hide .env*
+	}
+
+	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+
 	php_server
-
-	# Servir les fichiers statiques (JS/CSS/Images)
-	file_server
 }

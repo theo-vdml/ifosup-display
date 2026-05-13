@@ -1,21 +1,15 @@
-#!/bin/sh
+#!/bin/bash
+
 set -e
 
-# Migration de la base de données
-echo "Running migrations..."
+echo "Running migrations and seeding database ..."
 php artisan migrate --force
 
-# Lien symbolique storage
-echo "Linking storage..."
-php artisan storage:link --force
-
-# Création de l'admin (ta commande spécifique)
-echo "Creating admin user..."
-php artisan app:create-admin-user
-
-# Optimisation Laravel
+php artisan storage:link
+php artisan optimize:clear
 php artisan optimize
 
-# Démarrage de FrankenPHP (la commande par défaut de l'image)
-echo "Starting FrankenPHP..."
-exec frankenphp run --config /etc/caddy/Caddyfile --adapter caddyfile
+echo "Starting Laravel server ..."
+
+# Start the FrankenPHP server
+exec frankenphp run --config /Caddyfile --adapter caddyfile 2>&1
