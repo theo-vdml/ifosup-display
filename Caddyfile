@@ -1,0 +1,19 @@
+{
+	frankenphp
+	order php_server before file_server
+}
+
+# On écoute sur le port 80 explicitement
+:80 {
+	# Racine du projet
+	root * public
+
+	# Compression
+	encode zstd gzip
+
+	# Exécution PHP
+	php_server
+
+	# Servir les fichiers statiques (JS/CSS/Images)
+	file_server
+}
