@@ -1,42 +1,82 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-vue-next';
-import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
-import NavMain from '@/components/NavMain.vue';
-import NavUser from '@/components/NavUser.vue';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
+    import { Link } from '@inertiajs/vue3';
+    import { BookOpen, GraduationCap, DoorOpen, UsersRound, CalendarRange, Monitor, ShieldEllipsis, Tv, FileSpreadsheet } from 'lucide-vue-next';
+    import AppLogo from '@/components/AppLogo.vue';
+    import NavFooter from '@/components/NavFooter.vue';
+    import NavMain from '@/components/NavMain.vue';
+    import NavUser from '@/components/NavUser.vue';
+    import {
+        Sidebar,
+        SidebarContent,
+        SidebarFooter,
+        SidebarHeader,
+        SidebarMenu,
+        SidebarMenuButton,
+        SidebarMenuItem,
+    } from '@/components/ui/sidebar';
+    import { schedule } from '@/routes';
+    import type { NavItem } from '@/types';
+    import teachers from '@/routes/teachers';
+    import rooms from '@/routes/rooms';
+    import groups from '@/routes/groups';
+    import courses from '@/routes/courses';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+    const resourceNavItems: NavItem[] = [
+        {
+            title: 'Enseignants',
+            href: teachers.index(),
+            icon: GraduationCap,
+        },
+        {
+            title: 'Locaux',
+            href: rooms.index(),
+            icon: DoorOpen,
+        },
+        {
+            title: 'Sections',
+            href: groups.index(),
+            icon: UsersRound,
+        },
+        {
+            title: 'Cours',
+            href: courses.index(),
+            icon: BookOpen,
+        },
+    ];
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+    const displayNavItems: NavItem[] = [
+        {
+            title: 'Planning',
+            href: schedule(),
+            icon: CalendarRange,
+        },
+        {
+            title: 'Import Excel',
+            href: '/scheduler/import',
+            icon: FileSpreadsheet,
+        },
+        {
+            title: 'Slides écran',
+            href: '/screen/slides',
+            icon: Monitor,
+        },
+    ];
+
+    const adminNavItems: NavItem[] = [
+        {
+            title: 'Utilisateurs',
+            href: '/admin/users',
+            icon: ShieldEllipsis,
+        },
+    ];
+
+    const footerNavItems: NavItem[] = [
+        {
+            title: 'Écran TV',
+            href: '/screen',
+            icon: Tv,
+        },
+    ];
 </script>
 
 <template>
@@ -45,7 +85,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="schedule()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -54,7 +94,9 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="resourceNavItems" label="Ressources" />
+            <NavMain :items="displayNavItems" label="Affichage" />
+            <NavMain :items="adminNavItems" label="Administration" />
         </SidebarContent>
 
         <SidebarFooter>
