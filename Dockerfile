@@ -1,37 +1,58 @@
-# --- Stage 1 : Build Assets (Node) ---
-FROM node:22-bookworm AS assets-builder
-WORKDIR /app
-COPY . .
-RUN npm install && npm run build
+# --- Stage 1 : Build complet (PHP + Assets) ---
+# On utilise Debian (Bookworm) comme Railpack
+FROM dunglas/frankenphp:php8.4-bookworm AS builder
 
-# --- Stage 2 : Final Image (FrankenPHP sur Debian) ---
+# Installation de Node.js (nécessaire pour Vite)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Installation des extensions PHP minimales pour le build
+RUN install-php-extensions pdo_mysql bcmath gd zip intl pcntl opcache
+
+WORKDIR /app
+
+# 1. Installation des dépendances PHP
+COPY composer*.json ./
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN composer install --no-dev --no-scripts --no-autoloader
+
+# 2. Installation des dépendances JS
+COPY package*.json ./
+RUN npm install
+
+# 3. Copie du code et build
+COPY . .
+RUN composer dump-autoload
+# Ici, php est disponible, donc Wayfinder ne plantera pas
+RUN npm run build
+
+# --- Stage 2 : Image Finale ---
 FROM dunglas/frankenphp:php8.4-bookworm
 
 # Variables Railpack
 ENV SERVER_NAME=:80
+ENV IS_LARAVEL=true
 
-# Installation des extensions via le helper FrankenPHP
+# Extensions pour le runtime
 RUN install-php-extensions pdo_mysql bcmath gd zip intl pcntl opcache
-
-# Installation de Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copie de tout le projet (y compris le build du stage 1)
-COPY . .
-COPY --from=assets-builder /app/public/build ./public/build
+# On récupère tout ce qui a été buildé proprement au Stage 1
+COPY --from=builder /app /app
 
-# Installation Composer & Optimisation
-RUN composer install --no-dev --optimize-autoloader --no-scripts
-RUN php artisan config:cache && php artisan route:cache
+# Nettoyage et optimisations finales
+RUN rm -rf node_modules && \
+    composer dump-autoload --optimize && \
+    php artisan optimize
 
 # Droits d'accès
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Fichiers Railpack (on les simule)
+# Fichiers de config (Caddyfile + start script)
 COPY Caddyfile /Caddyfile
-COPY start-container.sh /start-container.sh
+COPY docker-entrypoint.sh /start-container.sh
 RUN chmod +x /start-container.sh
 
 EXPOSE 80
